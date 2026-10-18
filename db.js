@@ -181,5 +181,28 @@ function seedUserNotifications(userId) {
 
 initSchema();
 seedCampaigns();
+// Crea el primer administrador desde variables de entorno.
+function seedAdminFromEnv() {
+  const email = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || '';
+  const name = (process.env.ADMIN_NAME || 'Admin').trim() || 'Admin';
+  if (!email || !password) return;
+  const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (exists) return;
+  if (password.length < 8) {
+    console.warn('ADMIN_PASSWORD debe tener al menos 8 caracteres; no se creó el admin.');
+    return;
+  }
+  const bcrypt = require('bcryptjs');
+  const password_hash = bcrypt.hashSync(password, 12);
+  const info = db
+    .prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')")
+    .run(name, email, password_hash);
+  seedUserNotifications(info.lastInsertRowid);
+  console.log(`Administrador "${name}" creado desde variables de entorno.`);
+}
+
+seedAdminFromEnv();
+
 
 module.exports = { db, seedUserNotifications };
