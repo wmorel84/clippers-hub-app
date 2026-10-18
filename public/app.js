@@ -453,6 +453,33 @@
     });
   }
 
+  /* ---------------- Respaldo (admin) ---------------- */
+  $('backup-download').addEventListener('click', function () {
+    window.location.href = '/api/admin/backup';
+  });
+  $('backup-file').addEventListener('change', async function () {
+    var f = $('backup-file').files[0];
+    if (!f) return;
+    if (!confirm('¿Restaurar este respaldo? Se reemplazarán los datos actuales. Después deberás reiniciar el servicio en Railway.')) {
+      $('backup-file').value = '';
+      return;
+    }
+    $('backup-msg').textContent = 'Subiendo respaldo…';
+    try {
+      var r = await fetch('/api/admin/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: f
+      });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Error al restaurar.');
+      $('backup-msg').textContent = data.message;
+    } catch (e) {
+      $('backup-msg').textContent = e.message;
+    }
+    $('backup-file').value = '';
+  });
+
   /* ---------------- Init ---------------- */
   loadCampaigns();
   checkSession();

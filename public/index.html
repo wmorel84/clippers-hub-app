@@ -163,6 +163,16 @@
             <tbody id="admin-campaign-rows"></tbody>
           </table>
         </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Respaldo de la base de datos</h3>
+          <p style="color:var(--muted)">Descarga una copia de seguridad o restaura una anterior. Después de restaurar, reinicia el servicio en Railway para aplicarlo.</p>
+          <div class="row-actions">
+            <button class="btn small" id="backup-download" type="button">Descargar respaldo</button>
+            <label class="btn small ghost" for="backup-file" style="cursor:pointer">Restaurar respaldo…</label>
+            <input type="file" id="backup-file" accept=".db" hidden>
+          </div>
+          <p id="backup-msg" style="margin-top:8px;color:var(--muted)"></p>
+        </div>
       </section>
     </div>
   </div>

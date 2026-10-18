@@ -181,7 +181,10 @@ function seedUserNotifications(userId) {
 
 initSchema();
 seedCampaigns();
+
 // Crea el primer administrador desde variables de entorno.
+// Solo actúa si ADMIN_EMAIL y ADMIN_PASSWORD están definidas y ese correo
+// aún no existe. Pensado para el primer despliegue en Railway.
 function seedAdminFromEnv() {
   const email = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD || '';
@@ -203,6 +206,5 @@ function seedAdminFromEnv() {
 }
 
 seedAdminFromEnv();
-
 
 module.exports = { db, seedUserNotifications };

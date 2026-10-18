@@ -10,6 +10,7 @@ const campaignRoutes = require('./routes/campaigns');
 const clipRoutes = require('./routes/clips');
 const notificationRoutes = require('./routes/notifications');
 const walletRoutes = require('./routes/wallet');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -47,6 +48,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/clips', clipRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Frontend estático
 app.use(express.static(path.join(__dirname, 'public')));
