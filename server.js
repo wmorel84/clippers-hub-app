@@ -1,4 +1,4 @@
-// Servidor principal del Hub de Clippers.
+// Servidor principal de Clippers Pro.
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
@@ -10,6 +10,7 @@ const campaignRoutes = require('./routes/campaigns');
 const clipRoutes = require('./routes/clips');
 const notificationRoutes = require('./routes/notifications');
 const walletRoutes = require('./routes/wallet');
+const accountRoutes = require('./routes/accounts');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/clips', clipRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/accounts', accountRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Frontend estático
@@ -61,5 +63,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Hub de Clippers escuchando en http://localhost:${PORT}`);
+  console.log(`Clippers Pro escuchando en http://localhost:${PORT}`);
 });

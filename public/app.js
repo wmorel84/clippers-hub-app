@@ -36,7 +36,7 @@
 
   /* ---------------- Navegación ---------------- */
   var pageTitles = {
-    campanas: 'Campañas', 'mis-clips': 'Mis clips', billetera: 'Billetera',
+    campanas: 'Campañas', 'mis-clips': 'Mis clips', cuentas: 'Mis cuentas', billetera: 'Billetera',
     referidos: 'Referidos', cursos: 'Cursos', chat: 'Chat', admin: 'Gestión'
   };
 
@@ -50,8 +50,9 @@
     $('current-page-title').textContent = pageTitles[page] || 'Campañas';
     document.body.classList.remove('sidebar-open');
     if (page === 'mis-clips') loadClips();
+    if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
-    if (page === 'admin') loadAdminTable();
+    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); }
     window.scrollTo(0, 0);
   }
 
@@ -363,6 +364,155 @@
         '<div class="stat-box"><strong>' + w.total_views + '</strong><span>vistas totales</span></div></div>' +
         '<p>' + esc(w.note) + '</p>';
     } catch (e) { card.innerHTML = '<p>No se pudo cargar tu billetera.</p>'; }
+  }
+
+  /* ---------------- Mis cuentas (vinculación) ---------------- */
+  var accountStatusLabel = {
+    pending: 'Pendiente de revisión',
+    code_sent: 'Código enviado — pégalo en tu bio',
+    code_confirmed: 'Código pegado — por verificar',
+    verified: 'Verificada',
+    rejected: 'Rechazada'
+  };
+
+  function accountBadgeClass(s) {
+    if (s === 'verified') return 'badge real';
+    if (s === 'rejected') return 'badge example';
+    return 'badge';
+  }
+
+  async function loadAccounts() {
+    var card = $('accounts-card');
+    if (!state.user) { card.innerHTML = '<p>Inicia sesión para vincular tus cuentas.</p>'; return; }
+    try {
+      var data = await api('/api/accounts');
+      var rows = data.accounts.map(function (a) {
+        var plat = a.platform === 'tiktok' ? 'TikTok' : 'Instagram';
+        var h = '<div class="account-row"><div class="account-top"><div><strong>' + plat +
+          '</strong><br><a href="' + esc(a.profile_url) + '" target="_blank" rel="noopener" class="muted">' +
+          esc(a.profile_url) + '</a></div>' +
+          '<span class="' + accountBadgeClass(a.status) + '">' + esc(accountStatusLabel[a.status] || a.status) + '</span></div>';
+        if (a.status === 'code_sent' && a.verification_code) {
+          h += '<div class="code-box"><span>Wilson te envió este código. Pégalo en tu bio y confirma:</span>' +
+            '<strong>' + esc(a.verification_code) + '</strong>' +
+            '<button class="btn small accent" data-confirm="' + a.id + '" type="button">Ya lo pegué en mi bio</button></div>';
+        }
+        if (a.status === 'rejected' && a.admin_note) {
+          h += '<p class="muted">' + esc(a.admin_note) + '</p>';
+        }
+        if (a.status !== 'verified') {
+          h += '<div><button class="link-btn" data-delacc="' + a.id + '" type="button">Eliminar esta cuenta</button></div>';
+        }
+        return h + '</div>';
+      }).join('');
+      card.innerHTML =
+        '<h3>Vincular una cuenta</h3>' +
+        '<form id="account-form"><div class="form-grid">' +
+        '<div class="field-row"><div class="field"><label for="acc-platform">Plataforma</label>' +
+        '<select id="acc-platform"><option value="tiktok">TikTok</option><option value="instagram">Instagram</option></select></div>' +
+        '<div class="field"><label for="acc-url">Link de tu perfil</label>' +
+        '<input id="acc-url" type="url" placeholder="https://www.tiktok.com/@tuusuario" required /></div></div>' +
+        '<p class="form-error" id="account-error"></p>' +
+        '<button class="btn accent" type="submit">Registrar cuenta</button>' +
+        '</div></form>' +
+        '<h3 style="margin-top:24px">Tus cuentas</h3>' +
+        (rows || '<p class="muted">Aún no has registrado cuentas.</p>') +
+        '<p class="muted">Cuando registres tu cuenta, Wilson la vinculará y te enviará un código para pegar en tu bio. No borres el código de tu bio hasta que tu cuenta aparezca como «Verificada».</p>';
+
+      $('account-form').addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        $('account-error').textContent = '';
+        try {
+          await api('/api/accounts', {
+            method: 'POST',
+            body: JSON.stringify({ platform: $('acc-platform').value, profile_url: $('acc-url').value.trim() })
+          });
+          loadAccounts();
+        } catch (e) { $('account-error').textContent = e.message; }
+      });
+      card.querySelectorAll('[data-confirm]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          try {
+            await api('/api/accounts/' + btn.getAttribute('data-confirm') + '/confirm-code', { method: 'POST' });
+            loadAccounts();
+          } catch (e) { alert(e.message); }
+        });
+      });
+      card.querySelectorAll('[data-delacc]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('¿Eliminar esta cuenta?')) return;
+          try {
+            await api('/api/accounts/' + btn.getAttribute('data-delacc'), { method: 'DELETE' });
+            loadAccounts();
+          } catch (e) { alert(e.message); }
+        });
+      });
+    } catch (e) { card.innerHTML = '<p>No se pudieron cargar tus cuentas.</p>'; }
+  }
+
+  async function loadAdminAccounts() {
+    var tbody = $('admin-accounts-rows');
+    if (!tbody) return;
+    if (!state.user || state.user.role !== 'admin') {
+      tbody.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
+      return;
+    }
+    try {
+      var data = await api('/api/accounts/admin/all');
+      if (!data.accounts.length) { tbody.innerHTML = '<tr><td colspan="5">Sin solicitudes de vinculación.</td></tr>'; return; }
+      tbody.innerHTML = data.accounts.map(function (a) {
+        var plat = a.platform === 'tiktok' ? 'TikTok' : 'Instagram';
+        var actions = '';
+        if (a.status === 'pending' || a.status === 'code_confirmed' || a.status === 'rejected') {
+          actions += '<input class="code-input" data-code="' + a.id + '" placeholder="Código de la bio" value="' +
+            esc(a.verification_code || '') + '" />' +
+            '<button class="btn small" data-sendcode="' + a.id + '" type="button">Enviar código</button>';
+        }
+        if (a.status === 'code_sent' || a.status === 'code_confirmed') {
+          actions += '<span class="muted">Código enviado: <strong>' + esc(a.verification_code || '—') + '</strong></span>';
+        }
+        if (a.status !== 'verified') {
+          actions += '<button class="btn small accent" data-verify="' + a.id + '" type="button">Marcar verificada</button>';
+        }
+        actions += '<button class="btn small danger" data-reject="' + a.id + '" type="button">Rechazar</button>';
+        return '<tr><td>' + esc(a.user_name) + '<br><span class="muted">' + esc(a.user_email) + '</span></td>' +
+          '<td>' + plat + '</td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' +
+          esc(a.profile_url) + '" target="_blank" rel="noopener">' + esc(a.profile_url) + '</a></td>' +
+          '<td><span class="' + accountBadgeClass(a.status) + '">' + esc(accountStatusLabel[a.status] || a.status) + '</span></td>' +
+          '<td><div class="row-actions">' + actions + '</div></td></tr>';
+      }).join('');
+      tbody.querySelectorAll('[data-sendcode]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var id = btn.getAttribute('data-sendcode');
+          var input = tbody.querySelector('[data-code="' + id + '"]');
+          var code = input ? input.value.trim() : '';
+          if (!code) { alert('Escribe el código de verificación primero.'); return; }
+          try {
+            await api('/api/accounts/admin/' + id + '/send-code', { method: 'POST', body: JSON.stringify({ code: code }) });
+            loadAdminAccounts();
+          } catch (e) { alert(e.message); }
+        });
+      });
+      tbody.querySelectorAll('[data-verify]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('¿Confirmar que verificaste esta cuenta en la plataforma?')) return;
+          try {
+            await api('/api/accounts/admin/' + btn.getAttribute('data-verify') + '/verify', { method: 'POST' });
+            loadAdminAccounts();
+          } catch (e) { alert(e.message); }
+        });
+      });
+      tbody.querySelectorAll('[data-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var note = prompt('Motivo del rechazo (opcional, lo verá el clipper):') || '';
+          try {
+            await api('/api/accounts/admin/' + btn.getAttribute('data-reject') + '/reject', { method: 'POST', body: JSON.stringify({ note: note }) });
+            loadAdminAccounts();
+          } catch (e) { alert(e.message); }
+        });
+      });
+    } catch (e) { tbody.innerHTML = '<tr><td colspan="5">No se pudieron cargar las cuentas.</td></tr>'; }
   }
 
   /* ---------------- Admin ---------------- */

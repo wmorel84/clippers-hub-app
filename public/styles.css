@@ -248,3 +248,11 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   .field-row { grid-template-columns: 1fr; }
   .signin-label { display: none; }
 }
+
+/* Vinculación de cuentas sociales (Fase 1) */
+.account-row { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 12px 0; display: flex; flex-direction: column; gap: 10px; }
+.account-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.code-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.code-box strong { font-size: 1.15rem; letter-spacing: 1px; }
+.code-input { max-width: 170px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: inherit; font: inherit; }
+.muted { color: var(--muted); font-size: .88rem; }

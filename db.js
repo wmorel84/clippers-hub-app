@@ -53,6 +53,23 @@ function initSchema() {
       is_read INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    -- Cuentas sociales de los clippers para vincular en las plataformas.
+    -- Estados: pending (clipper registró el link) → code_sent (Wilson envió el
+    -- código de la bio) → code_confirmed (clipper pegó el código) → verified
+    -- (Wilson verificó en la plataforma) | rejected.
+    CREATE TABLE IF NOT EXISTS social_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL CHECK (platform IN ('tiktok', 'instagram')),
+      profile_url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'code_sent', 'code_confirmed', 'verified', 'rejected')),
+      verification_code TEXT NOT NULL DEFAULT '',
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, platform, profile_url)
+    );
   `);
 }
 
