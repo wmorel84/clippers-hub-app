@@ -55,6 +55,11 @@ app.use('/api/admin', adminRoutes);
 // Frontend estático
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Página pública de política de privacidad (exigida por Google OAuth)
+app.get('/privacidad', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'privacidad.html'));
+});
+
 // Manejo de errores JSON
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

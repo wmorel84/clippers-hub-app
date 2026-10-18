@@ -630,6 +630,46 @@
     $('backup-file').value = '';
   });
 
+  /* ---------------- Login con Google ---------------- */
+  // Usa Google Identity Services (estándar actual). El botón oficial de Google
+  // genera un ID token que el servidor verifica con la librería oficial.
+  async function initGoogleLogin() {
+    var wrap = $('google-btn-wrap');
+    try {
+      if (!wrap || typeof google === 'undefined' || !google.accounts || !google.accounts.id) return;
+      var cfg = await api('/api/auth/google-client-id');
+      if (!cfg.clientId) return; // aún sin configurar en el servidor
+      google.accounts.id.initialize({
+        client_id: cfg.clientId,
+        callback: async function (resp) {
+          $('google-error').textContent = '';
+          try {
+            var data = await api('/api/auth/google', {
+              method: 'POST',
+              body: JSON.stringify({ credential: resp.credential })
+            });
+            $('auth-dialog').close();
+            setUser(data.user);
+          } catch (e) {
+            $('google-error').textContent = e.message;
+          }
+        }
+      });
+      google.accounts.id.renderButton($('google-btn'), {
+        theme: 'outline',
+        size: 'large',
+        width: 300,
+        text: 'continue_with',
+        locale: 'es'
+      });
+      wrap.hidden = false;
+    } catch (e) {
+      if (wrap) wrap.hidden = true;
+    }
+  }
+  // La librería de Google la llama al cargarse (onload en index.html).
+  window.initGoogleLogin = initGoogleLogin;
+
   /* ---------------- Init ---------------- */
   loadCampaigns();
   checkSession();

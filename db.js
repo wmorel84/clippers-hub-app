@@ -199,6 +199,19 @@ function seedUserNotifications(userId) {
 initSchema();
 seedCampaigns();
 
+// Migración: columna google_sub para el login con Google.
+// En BDs ya creadas agrega la columna; en BDs nuevas no existe aún.
+function migrateGoogleSub() {
+  const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  if (!cols.includes('google_sub')) {
+    db.exec('ALTER TABLE users ADD COLUMN google_sub TEXT');
+  }
+  db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL'
+  );
+}
+migrateGoogleSub();
+
 // Crea el primer administrador desde variables de entorno.
 // Solo actúa si ADMIN_EMAIL y ADMIN_PASSWORD están definidas y ese correo
 // aún no existe. Pensado para el primer despliegue en Railway.

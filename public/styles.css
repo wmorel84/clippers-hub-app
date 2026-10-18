@@ -256,3 +256,9 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .code-box strong { font-size: 1.15rem; letter-spacing: 1px; }
 .code-input { max-width: 170px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: inherit; font: inherit; }
 .muted { color: var(--muted); font-size: .88rem; }
+
+/* Login con Google */
+.auth-divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 14px; color: var(--muted); font-size: .85rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+#google-btn-wrap { display: flex; justify-content: center; }
+#google-btn-wrap[hidden] { display: none; }

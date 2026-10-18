@@ -1,6 +1,8 @@
-// Rutas de autenticación: registro, login, logout y sesión actual.
+// Rutas de autenticación: registro, login, logout, sesión actual y login con Google.
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { db, seedUserNotifications } = require('../db');
 
 const router = express.Router();
@@ -70,6 +72,63 @@ router.get('/me', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
   if (!user) return res.status(401).json({ error: 'Sesión no válida.' });
   return res.json({ user: publicUser(user) });
+});
+
+// GET /api/auth/google-client-id — el ID de cliente es público (va en el frontend)
+router.get('/google-client-id', (req, res) => {
+  res.json({ clientId: process.env.GOOGLE_CLIENT_ID || null });
+});
+
+// POST /api/auth/google — login/registro con el botón "Continuar con Google".
+// El frontend envía el ID token (JWT) que genera Google; aquí se verifica la
+// firma con la librería oficial. Nunca se confía en datos sin verificar.
+router.post('/google', async (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(500).json({ error: 'El login con Google aún no está configurado.' });
+  }
+  const credential = req.body.credential;
+  if (!credential || typeof credential !== 'string') {
+    return res.status(400).json({ error: 'Falta la credencial de Google.' });
+  }
+  try {
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    const p = ticket.getPayload();
+    if (!p || !p.sub || !p.email || p.email_verified !== true) {
+      throw new Error('Token de Google no válido.');
+    }
+    const email = p.email.trim().toLowerCase();
+
+    // 1) ¿Ya existe un usuario vinculado a este Google?
+    let user = db.prepare('SELECT * FROM users WHERE google_sub = ?').get(p.sub);
+
+    // 2) Si no, ¿existe la cuenta por correo? Se vincula (mismo dueño verificado).
+    if (!user) {
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      if (user) {
+        db.prepare('UPDATE users SET google_sub = ? WHERE id = ?').run(p.sub, user.id);
+      }
+    }
+
+    // 3) Si no existe, se crea la cuenta de clipper.
+    if (!user) {
+      const name = String(p.name || email.split('@')[0]).slice(0, 100);
+      // Hash aleatorio inutilizable: esta cuenta entra solo con Google.
+      const fakeHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_COST);
+      const info = db
+        .prepare("INSERT INTO users (name, email, password_hash, role, google_sub) VALUES (?, ?, ?, 'clipper', ?)")
+        .run(name, email, fakeHash, p.sub);
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+      seedUserNotifications(user.id);
+    }
+
+    req.session.userId = user.id;
+    req.session.role = user.role;
+    return res.json({ user: publicUser(user) });
+  } catch (e) {
+    return res.status(401).json({ error: 'No se pudo verificar tu cuenta de Google.' });
+  }
 });
 
 module.exports = router;

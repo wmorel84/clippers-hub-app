@@ -277,6 +277,12 @@
           <button class="btn accent" type="submit" id="auth-submit">Entrar</button>
         </div>
       </form>
+      <div class="auth-divider"><span>o</span></div>
+      <div id="google-btn-wrap" hidden>
+        <div id="google-btn"></div>
+      </div>
+      <p class="form-error" id="google-error"></p>
+      <p class="muted" style="text-align:center;margin-top:12px">Al continuar aceptas nuestra <a href="/privacidad" target="_blank" rel="noopener">Política de Privacidad</a>.</p>
     </div>
   </dialog>
 
@@ -321,5 +327,6 @@
   </dialog>
 
   <script src="/app.js"></script>
+  <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()" onerror="document.getElementById('google-btn-wrap').hidden = true"></script>
 </body>
 </html>
