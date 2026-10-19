@@ -389,9 +389,10 @@
     try {
       var data = await api('/api/clips');
       if (!data.clips.length) { card.innerHTML = '<p>Aún no has enviado clips. Elige una campaña y usa el botón "Enviar un clip".</p>'; return; }
-      card.innerHTML = '<div class="table-wrap"><table class="admin-table"><thead><tr><th>Campaña</th><th>URL</th><th>Estado</th><th>Vistas</th></tr></thead><tbody>' +
+      card.innerHTML = '<div class="table-wrap"><table class="admin-table"><thead><tr><th>Campaña</th><th>URL</th><th>Estado</th><th>Vistas</th><th>Ganancia est.</th><th>Acreditado</th></tr></thead><tbody>' +
         data.clips.map(function (c) {
-          return '<tr><td>' + esc(c.campaign_title) + '</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.url) + '</td><td>' + esc(statusLabel[c.status] || c.status) + '</td><td>' + esc(c.views) + '</td></tr>';
+          var est = c.estimated_cents > 0 ? fmtUSD(c.estimated_cents) : '<span class="muted">' + esc(c.estimate_note || '—') + '</span>';
+          return '<tr><td>' + esc(c.campaign_title) + '</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.url) + '</td><td>' + esc(statusLabel[c.status] || c.status) + '</td><td>' + Number(c.views || 0).toLocaleString('es') + '</td><td>' + est + '</td><td>' + fmtUSD(c.credited_cents || 0) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     } catch (e) { card.innerHTML = '<p>No se pudieron cargar tus clips.</p>'; }
   }
@@ -754,20 +755,22 @@
     var tbodyA = $('admin-clips-approved');
     if (!tbodyR || !tbodyA) return;
     if (!state.user || state.user.role !== 'admin') {
-      tbodyR.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
-      tbodyA.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
+      tbodyR.innerHTML = '<tr><td colspan="7">Sin permiso.</td></tr>';
+      tbodyA.innerHTML = '<tr><td colspan="6">Sin permiso.</td></tr>';
       return;
     }
     try {
       var rev = await api('/api/clips/admin/review');
       tbodyR.innerHTML = rev.clips.map(function (c) {
+        var est = c.estimated_cents > 0 ? fmtUSD(c.estimated_cents) : '<span class="muted">' + esc(c.estimate_note || '—') + '</span>';
         return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
           '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + esc(c.url) + '" target="_blank" rel="noopener" class="muted">' + esc(c.url) + '</a></td>' +
+          '<td>' + Number(c.views || 0).toLocaleString('es') + '</td><td>' + est + '</td>' +
           '<td>' + fmtDateShort(c.created_at) + '</td>' +
           '<td><div class="row-actions"><button class="btn small accent" data-approve="' + c.id + '" type="button">Aprobar</button>' +
           '<button class="btn small ghost" data-reject="' + c.id + '" type="button">Rechazar</button></div></td></tr>';
-      }).join('') || '<tr><td colspan="5">No hay clips pendientes.</td></tr>';
-    } catch (e) { tbodyR.innerHTML = '<tr><td colspan="5">No se pudo cargar.</td></tr>'; }
+      }).join('') || '<tr><td colspan="7">No hay clips pendientes.</td></tr>';
+    } catch (e) { tbodyR.innerHTML = '<tr><td colspan="7">No se pudo cargar.</td></tr>'; }
 
     try {
       var ap = await api('/api/clips/admin/approved');
@@ -781,9 +784,10 @@
         return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
           '<td><div class="row-actions"><input class="code-input" style="max-width:110px" type="number" min="0" step="1" value="' + c.views + '" data-views="' + c.id + '">' +
           '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td>' +
+          '<td>' + fmtUSD(c.estimated_cents) + '</td>' +
           '<td>' + fmtUSD(c.credited_cents) + '</td><td>' + creditCell + '</td></tr>';
-      }).join('') || '<tr><td colspan="5">No hay clips aprobados.</td></tr>';
-    } catch (e) { tbodyA.innerHTML = '<tr><td colspan="5">No se pudo cargar.</td></tr>'; }
+      }).join('') || '<tr><td colspan="6">No hay clips aprobados.</td></tr>';
+    } catch (e) { tbodyA.innerHTML = '<tr><td colspan="6">No se pudo cargar.</td></tr>'; }
   }
 
   document.addEventListener('click', async function (ev) {

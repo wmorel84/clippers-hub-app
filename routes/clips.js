@@ -61,19 +61,52 @@ function isValidUrl(url) {
   }
 }
 
+// Estima la ganancia TOTAL generada por un clip según sus vistas, a la tarifa
+// del clipper (fuente × (1 − margen)), respetando mínimo de vistas y máximo
+// por clip. Devuelve { cents, note, minViews }. note: 'ok' | 'manual' | 'min'.
+function estimateTotal(clip) {
+  const margin = Math.min(100, Math.max(0, Number(clip.margin_pct) || 0));
+  const rate = Number(clip.source_per_1k) * (1 - margin / 100);
+  if (!(Number(clip.source_per_1k) > 0) || !(rate > 0)) {
+    return { cents: 0, note: 'manual', minViews: 0 };
+  }
+  const minViews = (Number(clip.source_min_clip) / Number(clip.source_per_1k)) * 1000;
+  if (clip.views < minViews) {
+    return { cents: 0, note: 'min', minViews: Math.round(minViews) };
+  }
+  const maxCents = Math.round(Number(clip.source_max_clip) * (1 - margin / 100) * 100);
+  let cents = Math.round((clip.views / 1000) * rate * 100);
+  if (maxCents > 0) cents = Math.min(cents, maxCents);
+  return { cents, note: 'ok', minViews: 0 };
+}
+
 // GET /api/clips — clips del usuario actual
 router.get('/', requireAuth, (req, res) => {
   const rows = db
     .prepare(`
       SELECT clips.id, clips.url, clips.status, clips.views, clips.created_at,
-             campaigns.title AS campaign_title
+             clips.credited_cents,
+             campaigns.title AS campaign_title,
+             campaigns.source_per_1k, campaigns.source_min_clip,
+             campaigns.source_max_clip, campaigns.margin_pct
       FROM clips
       JOIN campaigns ON campaigns.id = clips.campaign_id
       WHERE clips.user_id = ?
       ORDER BY clips.id DESC
     `)
     .all(req.session.userId);
-  res.json({ clips: rows });
+  res.json({
+    clips: rows.map((c) => {
+      const e = estimateTotal(c);
+      return {
+        id: c.id, url: c.url, status: c.status, views: c.views,
+        created_at: c.created_at, campaign_title: c.campaign_title,
+        credited_cents: c.credited_cents,
+        estimated_cents: e.cents,
+        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : '',
+      };
+    }),
+  });
 });
 
 // POST /api/clips — registrar un clip enviado
@@ -101,8 +134,10 @@ router.post('/', requireAuth, (req, res) => {
 router.get('/admin/review', requireAdmin, (req, res) => {
   const rows = db
     .prepare(
-      `SELECT clips.id, clips.url, clips.created_at, clips.user_id,
-              users.name AS clipper_name, campaigns.title AS campaign_title
+      `SELECT clips.id, clips.url, clips.views, clips.created_at, clips.user_id,
+              users.name AS clipper_name, campaigns.title AS campaign_title,
+              campaigns.source_per_1k, campaigns.source_min_clip,
+              campaigns.source_max_clip, campaigns.margin_pct
        FROM clips
        JOIN users ON users.id = clips.user_id
        JOIN campaigns ON campaigns.id = clips.campaign_id
@@ -110,7 +145,17 @@ router.get('/admin/review', requireAdmin, (req, res) => {
        ORDER BY clips.id ASC`
     )
     .all();
-  res.json({ clips: rows });
+  res.json({
+    clips: rows.map((c) => {
+      const e = estimateTotal(c);
+      return {
+        id: c.id, url: c.url, views: c.views, created_at: c.created_at,
+        clipper_name: c.clipper_name, campaign_title: c.campaign_title,
+        estimated_cents: e.cents,
+        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : (e.note === 'manual' ? 'Pago manual' : ''),
+      };
+    }),
+  });
 });
 
 // GET /api/clips/admin/approved — clips aprobados con datos para acreditar
@@ -131,10 +176,12 @@ router.get('/admin/approved', requireAdmin, (req, res) => {
   res.json({
     clips: rows.map((c) => {
       const s = suggestCredit(c);
+      const e = estimateTotal(c);
       return {
         id: c.id, url: c.url, views: c.views,
         credited_views: c.credited_views, credited_cents: c.credited_cents,
         created_at: c.created_at, clipper_name: c.clipper_name, campaign_title: c.campaign_title,
+        estimated_cents: e.cents,
         suggested_cents: s.cents, suggest_reason: s.reason,
         suggest_text: s.reason === 'ok' ? '' : suggestReasonText(s),
         min_views: s.minViews || 0, new_views: s.newViews || 0,
