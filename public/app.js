@@ -706,6 +706,31 @@
     }
   });
 
+  /* ---------------- Importar campañas ---------------- */
+  var importBtn = $('import-run');
+  if (importBtn) {
+    importBtn.addEventListener('click', async function () {
+      var msg = $('import-msg');
+      msg.textContent = '';
+      var raw = $('import-json').value.trim();
+      if (!raw) { msg.textContent = 'Pega primero el JSON de campañas.'; return; }
+      var list;
+      try {
+        list = JSON.parse(raw);
+        if (!Array.isArray(list)) list = [list];
+      } catch (e) { msg.textContent = 'El JSON no es válido: ' + e.message; return; }
+      msg.textContent = 'Importando ' + list.length + ' campañas…';
+      try {
+        var r = await api('/api/campaigns/admin/import', { method: 'POST', body: JSON.stringify({ campaigns: list }) });
+        var t = 'Listo: ' + r.inserted + ' nuevas, ' + r.updated + ' actualizadas.';
+        if (r.errors && r.errors.length) t += ' Errores: ' + r.errors.map(function (e) { return e.title; }).join(', ');
+        msg.textContent = t;
+        $('import-json').value = '';
+        loadAdminTable();
+      } catch (e) { msg.textContent = e.message; }
+    });
+  }
+
   /* ---------------- Clips admin (fase 4) ---------------- */
   function fmtDateShort(iso) {
     try { return new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('es', { day: 'numeric', month: 'short' }); }

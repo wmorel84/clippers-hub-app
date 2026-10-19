@@ -182,6 +182,17 @@
           </table></div>
         </div>
         <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Importar / actualizar campañas</h3>
+          <p style="color:var(--muted)">Pega el JSON de campañas (lo prepara Will en cada actualización). Las nuevas se crean y las que ya existen se actualizan por título. Nada se borra.</p>
+          <div class="field"><label for="import-json">JSON de campañas</label>
+            <textarea id="import-json" rows="4" placeholder='[{"title":"...","source_per_1k":3,...}]'></textarea>
+          </div>
+          <div class="row-actions" style="margin-top:10px">
+            <button class="btn small accent" id="import-run" type="button">Importar campañas</button>
+          </div>
+          <p id="import-msg" style="margin-top:8px;color:var(--muted)"></p>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
           <h3>Clips por revisar</h3>
           <p style="color:var(--muted)">Aprueba los clips que sí vas a subir a la fuente, o recházalos con el motivo. El clipper recibe el aviso.</p>
           <div class="table-wrap"><table class="admin-table">

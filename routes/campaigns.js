@@ -78,6 +78,65 @@ function toAdminCampaign(row) {
   return out;
 }
 
+// Sanitiza y valida los campos de una campaña (usado por crear, editar e importar).
+// Lanza Error si el título falta.
+function sanitizeCampaign(b) {
+  b = b || {};
+  const title = String(b.title || '').trim();
+  if (!title) throw new Error('Falta el título.');
+  const margin = Math.min(100, Math.max(0, b.margin_pct === undefined || b.margin_pct === '' ? 50 : Number(b.margin_pct) || 0));
+  return {
+    title,
+    artist: String(b.artist || '').trim(),
+    platform: String(b.platform || '').trim(),
+    category: String(b.category || 'musica').trim() || 'musica',
+    payout_text: String(b.payout_text || '').trim(),
+    budget_total: Number(b.budget_total) || 0,
+    budget_remaining: (b.budget_remaining === undefined || b.budget_remaining === '') ? (Number(b.budget_total) || 0) : (Number(b.budget_remaining) || 0),
+    deadline: String(b.deadline || '').trim(),
+    requirements: String(b.requirements || '').trim(),
+    brief: String(b.brief || '').trim(),
+    is_example: b.is_example ? 1 : 0,
+    status: b.status === 'inactive' ? 'inactive' : 'active',
+    source_per_1k: Math.max(0, Number(b.source_per_1k) || 0),
+    source_min_clip: Math.max(0, Number(b.source_min_clip) || 0),
+    source_max_clip: Math.max(0, Number(b.source_max_clip) || 0),
+    margin_pct: margin,
+    source_min_engagement: cleanEngagement(b.source_min_engagement),
+  };
+}
+
+function insertCampaign(c) {
+  return db.prepare(`
+      INSERT INTO campaigns
+        (title, artist, platform, category, payout_text, budget_total, budget_remaining,
+         deadline, requirements, brief, is_example, status,
+         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
+    c.deadline, c.requirements, c.brief, c.is_example, c.status,
+    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement
+  ).lastInsertRowid;
+}
+
+function updateCampaign(id, c) {
+  db.prepare(`
+      UPDATE campaigns SET
+        title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
+        budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
+        brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
+        source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
+        source_min_engagement = ?
+      WHERE id = ?
+    `).run(
+    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
+    c.deadline, c.requirements, c.brief, c.is_example, c.status,
+    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement,
+    id
+  );
+}
+
 // GET /api/campaigns/admin/all — solo admin: incluye tarifa fuente y margen.
 // OJO: registrada antes de /:id para que "admin" no se interprete como un id.
 router.get('/admin/all', requireAdmin, (req, res) => {
@@ -107,84 +166,45 @@ router.get('/:id', (req, res) => {
 
 // POST /api/campaigns — solo admin
 router.post('/', requireAdmin, (req, res) => {
-  const b = req.body;
-  const title = (b.title || '').trim();
-  if (!title) return res.status(400).json({ error: 'El título es obligatorio.' });
-
-  const margin = Math.min(100, Math.max(0, b.margin_pct === undefined || b.margin_pct === '' ? 50 : Number(b.margin_pct) || 0));
-
-  const info = db
-    .prepare(`
-      INSERT INTO campaigns
-        (title, artist, platform, category, payout_text, budget_total, budget_remaining,
-         deadline, requirements, brief, is_example, status,
-         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .run(
-      title,
-      (b.artist || '').trim(),
-      (b.platform || '').trim(),
-      (b.category || 'musica').trim(),
-      (b.payout_text || '').trim(),
-      Number(b.budget_total) || 0,
-      b.budget_remaining === undefined || b.budget_remaining === '' ? Number(b.budget_total) || 0 : Number(b.budget_remaining) || 0,
-      (b.deadline || '').trim(),
-      (b.requirements || '').trim(),
-      (b.brief || '').trim(),
-      b.is_example ? 1 : 0,
-      b.status === 'inactive' ? 'inactive' : 'active',
-      Math.max(0, Number(b.source_per_1k) || 0),
-      Math.max(0, Number(b.source_min_clip) || 0),
-      Math.max(0, Number(b.source_max_clip) || 0),
-      margin,
-      cleanEngagement(b.source_min_engagement)
-    );
-
-  const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(info.lastInsertRowid);
+  let c;
+  try { c = sanitizeCampaign(req.body); }
+  catch (e) { return res.status(400).json({ error: e.message }); }
+  const id = insertCampaign(c);
+  const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(id);
   res.status(201).json({ campaign: toAdminCampaign(row) });
+});
+
+// POST /api/campaigns/admin/import — importación masiva (upsert por título)
+router.post('/admin/import', requireAdmin, (req, res) => {
+  const list = req.body && req.body.campaigns;
+  if (!Array.isArray(list) || list.length === 0) {
+    return res.status(400).json({ error: 'Envía un arreglo "campaigns" con al menos 1 campaña.' });
+  }
+  if (list.length > 100) return res.status(400).json({ error: 'Máximo 100 campañas por importación.' });
+  const find = db.prepare('SELECT id FROM campaigns WHERE title = ?');
+  let inserted = 0, updated = 0;
+  const errors = [];
+  for (const b of list) {
+    try {
+      const c = sanitizeCampaign(b);
+      const ex = find.get(c.title);
+      if (ex) { updateCampaign(ex.id, c); updated++; }
+      else { insertCampaign(c); inserted++; }
+    } catch (e) {
+      errors.push({ title: (b && b.title) || '(sin título)', error: e.message });
+    }
+  }
+  res.json({ ok: true, inserted, updated, errors });
 });
 
 // PUT /api/campaigns/:id — solo admin
 router.put('/:id', requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT id FROM campaigns WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Campaña no encontrada.' });
-
-  const b = req.body;
-  const title = (b.title || '').trim();
-  if (!title) return res.status(400).json({ error: 'El título es obligatorio.' });
-
-  const margin = Math.min(100, Math.max(0, b.margin_pct === undefined || b.margin_pct === '' ? 50 : Number(b.margin_pct) || 0));
-
-  db.prepare(`
-      UPDATE campaigns SET
-        title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
-        budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
-        brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
-        source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
-        source_min_engagement = ?
-      WHERE id = ?
-    `).run(
-    title,
-    (b.artist || '').trim(),
-    (b.platform || '').trim(),
-    (b.category || 'musica').trim(),
-    (b.payout_text || '').trim(),
-    Number(b.budget_total) || 0,
-    b.budget_remaining === undefined || b.budget_remaining === '' ? Number(b.budget_total) || 0 : Number(b.budget_remaining) || 0,
-    (b.deadline || '').trim(),
-    (b.requirements || '').trim(),
-    (b.brief || '').trim(),
-    b.is_example ? 1 : 0,
-    b.status === 'inactive' ? 'inactive' : 'active',
-    Math.max(0, Number(b.source_per_1k) || 0),
-    Math.max(0, Number(b.source_min_clip) || 0),
-    Math.max(0, Number(b.source_max_clip) || 0),
-    margin,
-    cleanEngagement(b.source_min_engagement),
-    req.params.id
-  );
-
+  let c;
+  try { c = sanitizeCampaign(req.body); }
+  catch (e) { return res.status(400).json({ error: e.message }); }
+  updateCampaign(req.params.id, c);
   const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(req.params.id);
   res.json({ campaign: toAdminCampaign(row) });
 });
