@@ -126,11 +126,17 @@
         (c.artist ? '<p class="artist">' + esc(c.artist) + '</p>' : '') +
         (c.payout_text ? '<p class="pay">' + esc(c.payout_text) + '</p>' : '') +
         budgetHtml(c) +
-        '<div class="card-actions"><button class="btn small" data-detail="' + c.id + '">Ver brief</button></div>';
+        '<div class="card-actions"><button class="btn small" data-detail="' + c.id + '">Ver brief</button>' +
+        (c.is_example ? '' : ' <button class="btn small primary" data-submit="' + c.id + '">Enviar clip</button>') + '</div>';
       grid.appendChild(card);
     });
     grid.querySelectorAll('[data-detail]').forEach(function (btn) {
       btn.addEventListener('click', function () { openDetail(Number(btn.getAttribute('data-detail'))); });
+    });
+    grid.querySelectorAll('[data-submit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openSubmit(Number(btn.getAttribute('data-submit')));
+      });
     });
   }
 
@@ -158,6 +164,7 @@
   function openDetail(id) {
     var c = state.campaigns.find(function (x) { return x.id === id; });
     if (!c) return;
+    state.detailCampaignId = c.id;
     $('dialog-source').textContent = c.platform ? 'ORIGEN: ' + c.platform.toUpperCase() : '';
     $('dialog-category').textContent = c.category || '';
     var badge = $('dialog-badge');
@@ -334,7 +341,7 @@
   });
 
   /* ---------------- Enviar un clip ---------------- */
-  $('sb-submit').addEventListener('click', function () {
+  function openSubmit(preselectId) {
     $('submit-error').textContent = '';
     $('submit-ok').hidden = true;
     var loggedIn = !!state.user;
@@ -343,12 +350,17 @@
     if (loggedIn) {
       var sel = $('submit-campaign');
       sel.innerHTML = state.campaigns.filter(function (c) { return !c.is_example; }).map(function (c) {
-        return '<option value="' + c.id + '">' + esc(c.title) + '</option>';
+        return '<option value="' + c.id + '"' + (c.id === preselectId ? ' selected' : '') + '>' + esc(c.title) + '</option>';
       }).join('') || '<option value="">Sin campañas reales disponibles</option>';
     }
     $('submit-dialog').showModal();
-  });
+  }
+  $('sb-submit').addEventListener('click', function () { openSubmit(null); });
   $('close-submit').addEventListener('click', function () { $('submit-dialog').close(); });
+  $('dialog-submit-clip').addEventListener('click', function () {
+    $('detail-dialog').close();
+    openSubmit(state.detailCampaignId || null);
+  });
   $('submit-goto-login').addEventListener('click', function () {
     $('submit-dialog').close(); openAuth();
   });
