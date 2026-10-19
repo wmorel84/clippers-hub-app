@@ -119,8 +119,8 @@
       var card = document.createElement('article');
       card.className = 'card';
       card.innerHTML =
-        '<div class="card-top"><span class="badge ' + (c.is_example ? 'example' : 'real') + '">' +
-        (c.is_example ? 'EJEMPLO' : 'CAMPAÑA REAL') + '</span>' +
+        '<div class="card-top">' +
+        (c.is_example ? '<span class="badge example">EJEMPLO</span>' : '') +
         (c.platform ? '<span class="platform-tag">' + esc(c.platform) + '</span>' : '') + '</div>' +
         '<h3>' + esc(c.title) + '</h3>' +
         (c.artist ? '<p class="artist">' + esc(c.artist) + '</p>' : '') +
@@ -168,8 +168,13 @@
     $('dialog-source').textContent = c.platform ? 'ORIGEN: ' + c.platform.toUpperCase() : '';
     $('dialog-category').textContent = c.category || '';
     var badge = $('dialog-badge');
-    badge.textContent = c.is_example ? 'EJEMPLO' : 'CAMPAÑA REAL';
-    badge.className = 'badge ' + (c.is_example ? 'example' : 'real');
+    if (c.is_example) {
+      badge.textContent = 'EJEMPLO';
+      badge.className = 'badge example';
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
     $('dialog-title').textContent = c.title;
     $('dialog-artist').textContent = c.artist || '';
     $('dialog-pay').textContent = c.payout_text || '—';
@@ -351,7 +356,7 @@
       var sel = $('submit-campaign');
       sel.innerHTML = state.campaigns.filter(function (c) { return !c.is_example; }).map(function (c) {
         return '<option value="' + c.id + '"' + (c.id === preselectId ? ' selected' : '') + '>' + esc(c.title) + '</option>';
-      }).join('') || '<option value="">Sin campañas reales disponibles</option>';
+      }).join('') || '<option value="">Sin campañas disponibles</option>';
     }
     $('submit-dialog').showModal();
   }

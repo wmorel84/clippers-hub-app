@@ -267,3 +267,6 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .est-met { color: #c8930a; font-weight: 700; }
 .est-below { color: #d43d2a; }
 .credited-ok { color: #1e9e4a; font-weight: 700; }
+
+/* Línea de beneficio en el diálogo de acceso */
+.auth-benefit { color: var(--muted); font-size: .92rem; margin: 2px 0 12px; }
