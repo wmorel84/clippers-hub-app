@@ -182,6 +182,33 @@
           </table></div>
         </div>
         <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Billetera de clippers</h3>
+          <p style="color:var(--muted)">Registra las ganancias cuando la fuente apruebe los clips (quedan retenidas 14 días como antifraude) y los pagos que envíes por PANA. El clipper guarda su cuenta PANA en su Billetera.</p>
+          <div class="table-wrap"><table class="admin-table">
+            <thead><tr><th>Clipper</th><th>Cuenta PANA</th><th>Disponible</th><th>Retenido</th><th>Ganado</th><th>Pagado</th></tr></thead>
+            <tbody id="admin-wallet-rows"></tbody>
+          </table></div>
+          <div style="margin-top:16px;display:grid;gap:10px;max-width:560px">
+            <div class="field"><label for="wallet-user">Clipper</label>
+              <select id="wallet-user"></select>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="wallet-amount">Monto (US$)</label>
+                <input id="wallet-amount" type="number" min="0" step="0.01" placeholder="10.00">
+              </div>
+              <div class="field"><label for="wallet-concept">Campaña / concepto</label>
+                <input id="wallet-concept" type="text" placeholder="Yuridia | Bajón Emocional">
+              </div>
+            </div>
+            <div class="row-actions">
+              <button class="btn small accent" id="wallet-credit" type="button">Registrar ganancia</button>
+              <button class="btn small" id="wallet-payout" type="button">Registrar pago PANA</button>
+              <button class="btn small ghost" id="wallet-adjust" type="button">Ajuste</button>
+            </div>
+            <p id="wallet-msg" style="color:var(--muted)"></p>
+          </div>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
           <h3>Respaldo de la base de datos</h3>
           <p style="color:var(--muted)">Descarga una copia de seguridad o restaura una anterior. Después de restaurar, reinicia el servicio en Railway para aplicarlo.</p>
           <div class="row-actions">

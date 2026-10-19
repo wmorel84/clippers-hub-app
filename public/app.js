@@ -54,7 +54,7 @@
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
-    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); }
+    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); }
     window.scrollTo(0, 0);
   }
 
@@ -302,7 +302,7 @@
       renderNotifications(data.notifications, data.unread);
       if (!hadNews) return;
       var page = currentPageName();
-      if (page === 'admin') loadAdminAccounts(true);
+      if (page === 'admin') { loadAdminAccounts(true); loadAdminWallet(); }
       else if (page === 'cuentas') loadAccounts();
       else if (page === 'mis-clips') loadClips();
     } catch (e) { /* sesión vencida o sin red: se reintenta solo */ }
@@ -379,18 +379,71 @@
     } catch (e) { card.innerHTML = '<p>No se pudieron cargar tus clips.</p>'; }
   }
 
+  function fmtUSD(cents) { return 'US$' + (cents / 100).toFixed(2); }
+
+  function txStatusLabel(t) {
+    if (t.kind === 'payout') return 'Pagado';
+    if (t.status === 'held') {
+      var f = t.available_at ? new Date(t.available_at.replace(' ', 'T') + 'Z') : null;
+      return 'Retenido' + (f ? ' · se libera el ' + f.toLocaleDateString('es', { day: 'numeric', month: 'short' }) : '');
+    }
+    return 'Disponible';
+  }
+
+  function txDetail(t) {
+    var d = t.campaign_title ? esc(t.campaign_title) : '';
+    if (t.note) d += (d ? ' — ' : '') + esc(t.note);
+    if (t.kind === 'earning') return d || 'Ganancia';
+    if (t.kind === 'payout') return d || 'Pago por PANA';
+    return d || 'Ajuste';
+  }
+
   async function loadWallet() {
     var card = $('wallet-card');
     if (!state.user) { card.innerHTML = '<p>Inicia sesión para ver tu billetera.</p>'; return; }
     try {
       var data = await api('/api/wallet');
       var w = data.wallet;
-      card.innerHTML = '<div class="stat-row">' +
-        '<div class="stat-box"><strong>' + w.total_clips + '</strong><span>clips enviados</span></div>' +
-        '<div class="stat-box"><strong>' + w.approved_clips + '</strong><span>clips aprobados</span></div>' +
-        '<div class="stat-box"><strong>' + w.pending_clips + '</strong><span>en revisión</span></div>' +
-        '<div class="stat-box"><strong>' + w.total_views + '</strong><span>vistas totales</span></div></div>' +
-        '<p>' + esc(w.note) + '</p>';
+      var h = '<div class="stat-row">' +
+        '<div class="stat-box"><strong>' + fmtUSD(w.available_cents) + '</strong><span>disponible</span></div>' +
+        '<div class="stat-box"><strong>' + fmtUSD(w.held_cents) + '</strong><span>retenido (' + w.hold_days + ' días)</span></div>' +
+        '<div class="stat-box"><strong>' + fmtUSD(w.earned_cents) + '</strong><span>total ganado</span></div>' +
+        '<div class="stat-box"><strong>' + fmtUSD(w.paid_cents) + '</strong><span>total retirado</span></div></div>' +
+        '<p class="muted">' + esc(w.note) + '</p>';
+
+      h += '<div class="panel-card" style="margin:16px 0"><h3>Tu cuenta PANA</h3>' +
+        (w.pana_account
+          ? '<p>Recibes tus pagos en: <strong>' + esc(w.pana_account) + '</strong></p>'
+          : '<p class="muted">Aún no registras tu cuenta. Sin esto no podemos enviarte pagos.</p>') +
+        '<div class="field-row"><div class="field"><label for="pana-input">Cuenta PANA</label>' +
+        '<input id="pana-input" type="text" maxlength="120" placeholder="Tu usuario o número PANA" value="' + esc(w.pana_account) + '"></div>' +
+        '<div class="field" style="align-self:end"><button class="btn small accent" id="pana-save" type="button">Guardar</button></div></div>' +
+        '<p id="pana-msg" class="muted"></p></div>';
+
+      if (w.transactions.length) {
+        h += '<h3>Movimientos</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Fecha</th><th>Detalle</th><th>Monto</th><th>Estado</th></tr></thead><tbody>' +
+          w.transactions.map(function (t) {
+            var f = new Date(t.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('es', { day: 'numeric', month: 'short' });
+            var monto = (t.amount_cents > 0 ? '+' : '') + fmtUSD(t.amount_cents);
+            return '<tr><td>' + f + '</td><td>' + txDetail(t) + '</td><td>' + monto + '</td><td>' + esc(txStatusLabel(t)) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      } else {
+        h += '<p class="muted">Aún no tienes movimientos. Cuando Wilson registre tus ganancias aparecerán aquí.</p>';
+      }
+
+      h += '<p class="muted" style="margin-top:12px">' + w.approved_clips + ' clips aprobados · ' + w.total_views + ' vistas totales</p>';
+      card.innerHTML = h;
+
+      $('pana-save').addEventListener('click', async function () {
+        var v = $('pana-input').value.trim();
+        var msg = $('pana-msg');
+        if (!v) { msg.textContent = 'Escribe tu cuenta PANA.'; return; }
+        try {
+          var r = await api('/api/wallet/pana', { method: 'PUT', body: JSON.stringify({ pana_account: v }) });
+          msg.textContent = 'Cuenta guardada.';
+          loadWallet();
+        } catch (e) { msg.textContent = e.message; }
+      });
     } catch (e) { card.innerHTML = '<p>No se pudo cargar tu billetera.</p>'; }
   }
 
@@ -645,6 +698,62 @@
       $('campaign-error').textContent = e.message;
     }
   });
+
+  /* ---------------- Billetera admin ---------------- */
+  async function loadAdminWallet() {
+    var tbody = $('admin-wallet-rows');
+    if (!tbody) return;
+    if (!state.user || state.user.role !== 'admin') {
+      tbody.innerHTML = '<tr><td colspan="6">Sin permiso.</td></tr>';
+      return;
+    }
+    try {
+      var data = await api('/api/wallet/admin/users');
+      var sel = $('wallet-user');
+      var current = sel.value;
+      sel.innerHTML = data.users.map(function (u) {
+        return '<option value="' + u.id + '">' + esc(u.name) + ' (' + esc(u.email) + ')</option>';
+      }).join('') || '<option value="">Sin clippers</option>';
+      if (current) sel.value = current;
+      tbody.innerHTML = data.users.map(function (u) {
+        return '<tr><td>' + esc(u.name) + '<br><span class="muted">' + esc(u.email) + '</span></td>' +
+          '<td>' + (u.pana_account ? esc(u.pana_account) : '<span class="muted">sin registrar</span>') + '</td>' +
+          '<td>' + fmtUSD(u.available_cents) + '</td>' +
+          '<td>' + fmtUSD(u.held_cents) + '</td>' +
+          '<td>' + fmtUSD(u.earned_cents) + '</td>' +
+          '<td>' + fmtUSD(u.paid_cents) + '</td></tr>';
+      }).join('') || '<tr><td colspan="6">Sin clippers registrados.</td></tr>';
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6">No se pudo cargar.</td></tr>';
+    }
+  }
+
+  async function walletAdminAction(endpoint, okMsg) {
+    var msg = $('wallet-msg');
+    var userId = Number($('wallet-user').value);
+    var amount = $('wallet-amount').value;
+    var concept = $('wallet-concept').value.trim();
+    msg.textContent = '';
+    if (!userId) { msg.textContent = 'Elige un clipper.'; return; }
+    if (endpoint !== 'adjust' && !(Number(amount) > 0)) { msg.textContent = 'Escribe un monto mayor a 0.'; return; }
+    var body = { user_id: userId, amount: Number(amount), note: '' };
+    if (endpoint === 'credit') body.campaign_title = concept;
+    else body.note = concept;
+    try {
+      await api('/api/wallet/admin/' + endpoint, { method: 'POST', body: JSON.stringify(body) });
+      msg.textContent = okMsg;
+      $('wallet-amount').value = '';
+      $('wallet-concept').value = '';
+      loadAdminWallet();
+    } catch (e) { msg.textContent = e.message; }
+  }
+
+  var wcBtn = $('wallet-credit');
+  if (wcBtn) {
+    wcBtn.addEventListener('click', function () { walletAdminAction('credit', 'Ganancia registrada (retenida 14 días).'); });
+    $('wallet-payout').addEventListener('click', function () { walletAdminAction('payout', 'Pago PANA registrado.'); });
+    $('wallet-adjust').addEventListener('click', function () { walletAdminAction('adjust', 'Ajuste aplicado.'); });
+  }
 
   async function loadAdminTable() {
     var tbody = $('admin-campaign-rows');

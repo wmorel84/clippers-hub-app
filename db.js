@@ -198,7 +198,32 @@ function seedUserNotifications(userId) {
 
 initSchema();
 migrateGoogleSub();
+// Migración: billetera con retención antifraude (fase 3 del modelo Clippers Pro).
+// users.pana_account = cuenta PANA del clipper para recibir sus pagos.
+// wallet_tx = movimientos en centavos (INTEGER): 'earning' (retenido 14 días),
+// 'payout' (pagado por Wilson vía PANA), 'adjustment' (ajuste inmediato).
+function migrateWallet() {
+  const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  if (!cols.includes('pana_account')) {
+    db.exec("ALTER TABLE users ADD COLUMN pana_account TEXT DEFAULT ''");
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS wallet_tx (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      kind TEXT NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'available',
+      available_at TEXT,
+      campaign_title TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_wallet_tx_user ON wallet_tx(user_id)');
+}
 migrateCampaignMargins();
+migrateWallet();
 seedCampaigns();
 
 // Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin
