@@ -212,6 +212,22 @@ function migrateGoogleSub() {
 }
 migrateGoogleSub();
 
+// Migración: tarifas con margen por campaña (fase 2 del modelo Clippers Pro).
+// source_* = lo que paga la fuente (solo admin); margin_pct = margen de Wilson;
+// la tarifa que ve el clipper se calcula: fuente × (1 - margen/100).
+// Si source_per_1k es 0, se usa el texto de pago manual (comportamiento anterior).
+function migrateCampaignMargins() {
+  const cols = db.prepare('PRAGMA table_info(campaigns)').all().map((c) => c.name);
+  const add = (name, def) => {
+    if (!cols.includes(name)) db.exec(`ALTER TABLE campaigns ADD COLUMN ${name} ${def}`);
+  };
+  add('source_per_1k', 'REAL NOT NULL DEFAULT 0');
+  add('source_min_clip', 'REAL NOT NULL DEFAULT 0');
+  add('source_max_clip', 'REAL NOT NULL DEFAULT 0');
+  add('margin_pct', 'REAL NOT NULL DEFAULT 50');
+}
+migrateCampaignMargins();
+
 // Crea el primer administrador desde variables de entorno.
 // Solo actúa si ADMIN_EMAIL y ADMIN_PASSWORD están definidas y ese correo
 // aún no existe. Pensado para el primer despliegue en Railway.

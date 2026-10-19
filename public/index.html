@@ -304,7 +304,16 @@
             </div>
             <div class="field"><label for="cf-deadline">Fecha límite</label><input id="cf-deadline" type="date" /></div>
           </div>
-          <div class="field"><label for="cf-payout">Texto de pago</label><input id="cf-payout" placeholder="2 US$ por cada 1.000 vistas…" /></div>
+          <div class="field"><label for="cf-payout">Texto de pago manual (si no usas tarifa fuente)</label><input id="cf-payout" placeholder="2 US$ por cada 1.000 vistas…" /></div>
+          <div class="field"><label for="cf-source-per1k">Pago de la fuente (US$ por 1.000 vistas) — solo tú lo ves</label><input id="cf-source-per1k" type="number" min="0" step="0.01" value="0" /></div>
+          <div class="field-row">
+            <div class="field"><label for="cf-source-min">Mín. fuente (US$/clip)</label><input id="cf-source-min" type="number" min="0" step="0.01" value="0" /></div>
+            <div class="field"><label for="cf-source-max">Máx. fuente (US$/clip)</label><input id="cf-source-max" type="number" min="0" step="0.01" value="0" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="cf-margin">Tu margen (%)</label><input id="cf-margin" type="number" min="0" max="100" step="1" value="50" /></div>
+            <div class="field"><label>El clipper verá</label><p id="cf-clipper-preview" class="muted" style="margin:8px 0"></p></div>
+          </div>
           <div class="field-row">
             <div class="field"><label for="cf-budget-total">Presupuesto total (US$)</label><input id="cf-budget-total" type="number" min="0" step="0.01" value="0" /></div>
             <div class="field"><label for="cf-budget-remaining">Presupuesto restante (US$)</label><input id="cf-budget-remaining" type="number" min="0" step="0.01" value="0" /></div>

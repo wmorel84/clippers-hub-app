@@ -570,6 +570,10 @@
     $('cf-category').value = c ? c.category : 'musica';
     $('cf-deadline').value = c && c.deadline ? c.deadline.slice(0, 10) : '';
     $('cf-payout').value = c ? c.payout_text : '';
+    $('cf-source-per1k').value = c && c.source_per_1k ? c.source_per_1k : 0;
+    $('cf-source-min').value = c && c.source_min_clip ? c.source_min_clip : 0;
+    $('cf-source-max').value = c && c.source_max_clip ? c.source_max_clip : 0;
+    $('cf-margin').value = c && c.margin_pct !== undefined && c.margin_pct !== null ? c.margin_pct : 50;
     $('cf-budget-total').value = c ? c.budget_total : 0;
     $('cf-budget-remaining').value = c ? c.budget_remaining : 0;
     $('cf-requirements').value = c ? c.requirements : '';
@@ -577,8 +581,33 @@
     $('cf-status').value = c ? c.status : 'active';
     $('cf-example').checked = c ? !!c.is_example : false;
     $('campaign-error').textContent = '';
+    updateClipperPreview();
     $('campaign-dialog').showModal();
   }
+
+  // Vista previa en vivo de la tarifa que verá el clipper.
+  function updateClipperPreview() {
+    var per1k = Number($('cf-source-per1k').value) || 0;
+    var min = Number($('cf-source-min').value) || 0;
+    var max = Number($('cf-source-max').value) || 0;
+    var margin = Math.min(100, Math.max(0, Number($('cf-margin').value) || 0));
+    var el = $('cf-clipper-preview');
+    if (!el) return;
+    if (per1k > 0) {
+      var f = (100 - margin) / 100;
+      var t = 'US$' + (per1k * f).toFixed(2) + ' por cada 1.000 vistas';
+      if (min > 0 || max > 0) {
+        t += ' (mín. US$' + (min * f).toFixed(2) + '/clip · máx. US$' + (max * f).toFixed(2) + '/clip)';
+      }
+      el.textContent = t;
+    } else {
+      el.textContent = 'Se usará el texto de pago manual.';
+    }
+  }
+  ['cf-source-per1k', 'cf-source-min', 'cf-source-max', 'cf-margin'].forEach(function (id) {
+    var el = $(id);
+    if (el) el.addEventListener('input', updateClipperPreview);
+  });
   $('campaign-new').addEventListener('click', function () { openCampaignForm(null); });
   $('campaign-close').addEventListener('click', function () { $('campaign-dialog').close(); });
 
@@ -592,6 +621,10 @@
       category: $('cf-category').value,
       deadline: $('cf-deadline').value,
       payout_text: $('cf-payout').value.trim(),
+      source_per_1k: Number($('cf-source-per1k').value) || 0,
+      source_min_clip: Number($('cf-source-min').value) || 0,
+      source_max_clip: Number($('cf-source-max').value) || 0,
+      margin_pct: $('cf-margin').value === '' ? 50 : Number($('cf-margin').value),
       budget_total: Number($('cf-budget-total').value) || 0,
       budget_remaining: Number($('cf-budget-remaining').value) || 0,
       requirements: $('cf-requirements').value.trim(),
@@ -620,8 +653,15 @@
       return;
     }
     await loadCampaigns();
-    tbody.innerHTML = state.campaigns.map(function (c) {
-      return '<tr><td>' + esc(c.title) + (c.is_example ? ' <span class="badge example">EJEMPLO</span>' : '') + '</td>' +
+    // Lista del admin: incluye tarifa fuente y margen (nunca visible al público).
+    var adminList = state.campaigns;
+    try {
+      var adminData = await api('/api/campaigns/admin/all');
+      adminList = adminData.campaigns;
+    } catch (e) { /* sin acceso: se usa la lista pública */ }
+    tbody.innerHTML = adminList.map(function (c) {
+      return '<tr><td>' + esc(c.title) + (c.is_example ? ' <span class="badge example">EJEMPLO</span>' : '') +
+        (c.clipper_preview ? '<br><span class="muted">Clipper ve: ' + esc(c.clipper_preview) + '</span>' : '') + '</td>' +
         '<td>' + esc(c.platform || '—') + '</td>' +
         '<td>' + (c.status === 'active' ? 'Activa' : 'Inactiva') + '</td>' +
         '<td>US$ ' + esc(c.budget_remaining) + ' / US$ ' + esc(c.budget_total) + '</td>' +
@@ -632,7 +672,7 @@
     }).join('');
     tbody.querySelectorAll('[data-edit]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var c = state.campaigns.find(function (x) { return x.id === Number(btn.getAttribute('data-edit')); });
+        var c = adminList.find(function (x) { return x.id === Number(btn.getAttribute('data-edit')); });
         openCampaignForm(c);
       });
     });
