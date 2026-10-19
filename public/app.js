@@ -765,7 +765,8 @@
         var est = c.estimated_cents > 0 ? fmtUSD(c.estimated_cents) : '<span class="muted">' + esc(c.estimate_note || '—') + '</span>';
         return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
           '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + esc(c.url) + '" target="_blank" rel="noopener" class="muted">' + esc(c.url) + '</a></td>' +
-          '<td>' + Number(c.views || 0).toLocaleString('es') + '</td><td>' + est + '</td>' +
+          '<td><div class="row-actions"><input class="code-input" style="max-width:110px" type="number" min="0" step="1" value="' + c.views + '" data-views="' + c.id + '">' +
+          '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td><td>' + est + '</td>' +
           '<td>' + fmtDateShort(c.created_at) + '</td>' +
           '<td><div class="row-actions"><button class="btn small accent" data-approve="' + c.id + '" type="button">Aprobar</button>' +
           '<button class="btn small ghost" data-reject="' + c.id + '" type="button">Rechazar</button></div></td></tr>';
@@ -810,7 +811,8 @@
     } else if (t.hasAttribute('data-saveviews')) {
       var id = t.getAttribute('data-saveviews');
       var input = document.querySelector('input[data-views="' + id + '"]');
-      msg = $('credit-msg'); msg.textContent = '';
+      msg = t.closest('tbody') && t.closest('tbody').id === 'admin-clips-review' ? $('review-msg') : $('credit-msg');
+      msg.textContent = '';
       try {
         await api('/api/clips/admin/' + id + '/views', { method: 'POST', body: JSON.stringify({ views: Number(input.value) }) });
         msg.textContent = 'Vistas actualizadas.';

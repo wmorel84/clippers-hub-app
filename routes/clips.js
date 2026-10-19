@@ -211,11 +211,11 @@ router.post('/admin/:id/reject', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/clips/admin/:id/views — actualizar vistas de un clip aprobado
+// POST /api/clips/admin/:id/views — actualizar vistas de un clip pendiente o aprobado
 router.post('/admin/:id/views', requireAdmin, (req, res) => {
   const clip = db.prepare('SELECT id, status FROM clips WHERE id = ?').get(req.params.id);
   if (!clip) return res.status(404).json({ error: 'Clip no encontrado.' });
-  if (clip.status !== 'approved') return res.status(400).json({ error: 'Solo se actualizan vistas de clips aprobados.' });
+  if (clip.status !== 'approved' && clip.status !== 'pending') return res.status(400).json({ error: 'Solo se actualizan vistas de clips pendientes o aprobados.' });
   const views = Math.max(0, Math.floor(Number(req.body && req.body.views) || 0));
   db.prepare('UPDATE clips SET views = ? WHERE id = ?').run(views, clip.id);
   res.json({ ok: true, views });
