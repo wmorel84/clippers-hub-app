@@ -6,6 +6,8 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+// NOTA: estimateTotal se carga de forma diferida dentro del handler (require
+// circular con routes/clips.js: clips.js también requiere este módulo).
 
 const router = express.Router();
 
@@ -101,6 +103,20 @@ router.get('/', requireAuth, (req, res) => {
 
   const b = balances(req.session.userId);
 
+  // Total estimado de los clips que ya cumplen el mínimo (a tarifa del clipper).
+  const { estimateTotal } = require('./clips');
+  const clipRows = db
+    .prepare(
+      `SELECT clips.views,
+              campaigns.source_per_1k, campaigns.source_min_clip,
+              campaigns.source_max_clip, campaigns.margin_pct
+       FROM clips
+       JOIN campaigns ON campaigns.id = clips.campaign_id
+       WHERE clips.user_id = ? AND clips.status != 'rejected'`
+    )
+    .all(req.session.userId);
+  const estimatedTotalCents = clipRows.reduce((sum, c) => sum + estimateTotal(c).cents, 0);
+
   res.json({
     wallet: {
       total_clips: stats.total_clips,
@@ -111,6 +127,7 @@ router.get('/', requireAuth, (req, res) => {
       held_cents: b.held_cents,
       earned_cents: b.earned_cents,
       paid_cents: b.paid_cents,
+      estimated_total_cents: estimatedTotalCents,
       hold_days: HOLD_DAYS,
       pana_account: (user && user.pana_account) || '',
       transactions: txsFor(req.session.userId, 50),

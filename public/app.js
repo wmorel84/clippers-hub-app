@@ -391,13 +391,24 @@
       if (!data.clips.length) { card.innerHTML = '<p>Aún no has enviado clips. Elige una campaña y usa el botón "Enviar un clip".</p>'; return; }
       card.innerHTML = '<div class="table-wrap"><table class="admin-table"><thead><tr><th>Campaña</th><th>URL</th><th>Estado</th><th>Vistas</th><th>Ganancia est.</th><th>Acreditado</th></tr></thead><tbody>' +
         data.clips.map(function (c) {
-          var est = c.estimated_cents > 0 ? fmtUSD(c.estimated_cents) : '<span class="muted">' + esc(c.estimate_note || '—') + '</span>';
-          return '<tr><td>' + esc(c.campaign_title) + '</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.url) + '</td><td>' + esc(statusLabel[c.status] || c.status) + '</td><td>' + Number(c.views || 0).toLocaleString('es') + '</td><td>' + est + '</td><td>' + fmtUSD(c.credited_cents || 0) + '</td></tr>';
+          return '<tr><td>' + esc(c.campaign_title) + '</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.url) + '</td><td>' + esc(statusLabel[c.status] || c.status) + '</td><td>' + Number(c.views || 0).toLocaleString('es') + '</td><td>' + estCell(c) + '</td><td>' + creditedCell(c.credited_cents) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     } catch (e) { card.innerHTML = '<p>No se pudieron cargar tus clips.</p>'; }
   }
 
   function fmtUSD(cents) { return 'US$' + (cents / 100).toFixed(2); }
+
+  // Celda de ganancia estimada con color: amarillo si cumple el mínimo, rojo si no.
+  function estCell(c) {
+    return c.estimated_cents > 0
+      ? '<span class="est-met">' + fmtUSD(c.estimated_cents) + '</span>'
+      : '<span class="est-below">' + esc(c.estimate_note || '—') + '</span>';
+  }
+  // Celda de monto acreditado: verde cuando es mayor a cero.
+  function creditedCell(cents) {
+    cents = cents || 0;
+    return cents > 0 ? '<span class="credited-ok">' + fmtUSD(cents) + '</span>' : fmtUSD(0);
+  }
 
   function txStatusLabel(t) {
     if (t.kind === 'payout') return 'Pagado';
@@ -426,6 +437,7 @@
         '<div class="stat-box"><strong>' + fmtUSD(w.available_cents) + '</strong><span>disponible</span></div>' +
         '<div class="stat-box"><strong>' + fmtUSD(w.held_cents) + '</strong><span>retenido (' + w.hold_days + ' días)</span></div>' +
         '<div class="stat-box"><strong>' + fmtUSD(w.earned_cents) + '</strong><span>total ganado</span></div>' +
+        '<div class="stat-box"><strong class="est-met">' + fmtUSD(w.estimated_total_cents || 0) + '</strong><span>ganancia estimada</span></div>' +
         '<div class="stat-box"><strong>' + fmtUSD(w.paid_cents) + '</strong><span>total retirado</span></div></div>' +
         '<p class="muted">' + esc(w.note) + '</p>';
 
@@ -762,11 +774,10 @@
     try {
       var rev = await api('/api/clips/admin/review');
       tbodyR.innerHTML = rev.clips.map(function (c) {
-        var est = c.estimated_cents > 0 ? fmtUSD(c.estimated_cents) : '<span class="muted">' + esc(c.estimate_note || '—') + '</span>';
         return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
           '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + esc(c.url) + '" target="_blank" rel="noopener" class="muted">' + esc(c.url) + '</a></td>' +
           '<td><div class="row-actions"><input class="code-input" style="max-width:110px" type="number" min="0" step="1" value="' + c.views + '" data-views="' + c.id + '">' +
-          '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td><td>' + est + '</td>' +
+          '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td><td>' + estCell(c) + '</td>' +
           '<td>' + fmtDateShort(c.created_at) + '</td>' +
           '<td><div class="row-actions"><button class="btn small accent" data-approve="' + c.id + '" type="button">Aprobar</button>' +
           '<button class="btn small ghost" data-reject="' + c.id + '" type="button">Rechazar</button></div></td></tr>';
@@ -785,8 +796,8 @@
         return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
           '<td><div class="row-actions"><input class="code-input" style="max-width:110px" type="number" min="0" step="1" value="' + c.views + '" data-views="' + c.id + '">' +
           '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td>' +
-          '<td>' + fmtUSD(c.estimated_cents) + '</td>' +
-          '<td>' + fmtUSD(c.credited_cents) + '</td><td>' + creditCell + '</td></tr>';
+          '<td>' + estCell(c) + '</td>' +
+          '<td>' + creditedCell(c.credited_cents) + '</td><td>' + creditCell + '</td></tr>';
       }).join('') || '<tr><td colspan="6">No hay clips aprobados.</td></tr>';
     } catch (e) { tbodyA.innerHTML = '<tr><td colspan="6">No se pudo cargar.</td></tr>'; }
   }

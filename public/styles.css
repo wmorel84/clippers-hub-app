@@ -262,3 +262,8 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 #google-btn-wrap { display: flex; justify-content: center; }
 #google-btn-wrap[hidden] { display: none; }
+
+/* Colores de ganancia estimada y acreditada */
+.est-met { color: #c8930a; font-weight: 700; }
+.est-below { color: #d43d2a; }
+.credited-ok { color: #1e9e4a; font-weight: 700; }

@@ -182,6 +182,7 @@ router.get('/admin/approved', requireAdmin, (req, res) => {
         credited_views: c.credited_views, credited_cents: c.credited_cents,
         created_at: c.created_at, clipper_name: c.clipper_name, campaign_title: c.campaign_title,
         estimated_cents: e.cents,
+        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : '',
         suggested_cents: s.cents, suggest_reason: s.reason,
         suggest_text: s.reason === 'ok' ? '' : suggestReasonText(s),
         min_views: s.minViews || 0, new_views: s.newViews || 0,
@@ -245,3 +246,4 @@ router.post('/admin/:id/credit', requireAdmin, (req, res) => {
 });
 
 module.exports = router;
+module.exports.estimateTotal = estimateTotal;
