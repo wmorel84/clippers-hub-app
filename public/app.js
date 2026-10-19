@@ -393,7 +393,7 @@
           esc(a.profile_url) + '</a></div>' +
           '<span class="' + accountBadgeClass(a.status) + '">' + esc(accountStatusLabel[a.status] || a.status) + '</span></div>';
         if (a.status === 'code_sent' && a.verification_code) {
-          h += '<div class="code-box"><span>Wilson te envió este código. Pégalo en tu bio y confirma:</span>' +
+          h += '<div class="code-box"><span>Pégalo en tu bio, guarda los cambios y confirma:</span>' +
             '<strong>' + esc(a.verification_code) + '</strong>' +
             '<button class="btn small accent" data-confirm="' + a.id + '" type="button">Ya lo pegué en mi bio</button></div>';
         }
@@ -463,7 +463,7 @@
       tbody.innerHTML = data.accounts.map(function (a) {
         var plat = a.platform === 'tiktok' ? 'TikTok' : 'Instagram';
         var actions = '';
-        if (a.status === 'pending' || a.status === 'code_confirmed' || a.status === 'rejected') {
+        if (a.status === 'pending' || a.status === 'code_sent' || a.status === 'code_confirmed' || a.status === 'rejected') {
           actions += '<input class="code-input" data-code="' + a.id + '" placeholder="Código de la bio" value="' +
             esc(a.verification_code || '') + '" />' +
             '<button class="btn small" data-sendcode="' + a.id + '" type="button">Enviar código</button>';

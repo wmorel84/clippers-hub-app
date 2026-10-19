@@ -145,13 +145,16 @@ router.post('/admin/:id/send-code', requireAdmin, (req, res) => {
   if (!code) return res.status(400).json({ error: 'Escribe el código de verificación.' });
   const acc = db.prepare('SELECT * FROM social_accounts WHERE id = ?').get(req.params.id);
   if (!acc) return res.status(404).json({ error: 'Cuenta no encontrada.' });
+  const isResend = acc.status === 'code_sent' || acc.verification_code !== '';
   db.prepare(
     "UPDATE social_accounts SET status = 'code_sent', verification_code = ?, updated_at = datetime('now') WHERE id = ?"
   ).run(code, acc.id);
   notify(
     acc.user_id,
-    'Código de verificación listo',
-    `Wilson te envió el código para vincular tu ${platformName(acc.platform)}. Pégalo en tu bio y pulsa «Ya lo pegué» en Mis cuentas.`
+    isResend ? 'Nuevo código de verificación' : 'Código de verificación listo',
+    isResend
+      ? `Wilson te envió un nuevo código para tu ${platformName(acc.platform)}. Vuelve a pegar el código en tu bio, guarda los cambios y pulsa «Ya lo pegué» en Mis cuentas.`
+      : `Wilson te envió el código para vincular tu ${platformName(acc.platform)}. Pégalo en tu bio, guarda los cambios y pulsa «Ya lo pegué» en Mis cuentas.`
   );
   res.json({ ok: true });
 });
