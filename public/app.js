@@ -54,7 +54,7 @@
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
-    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); }
+    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); }
     window.scrollTo(0, 0);
   }
 
@@ -168,6 +168,11 @@
     $('dialog-pay').textContent = c.payout_text || '—';
     $('dialog-date').textContent = c.deadline ? 'Termina ' + fmtDate(c.deadline) : 'Sin fecha límite';
     var reqs = (c.requirements || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    // El engagement mínimo es un requisito estructurado: se muestra salvo que el
+    // texto ya lo mencione (para no duplicarlo).
+    if (c.min_engagement_pct > 0 && !/engagement/i.test(c.requirements || '')) {
+      reqs.push('Engagement mínimo del ' + c.min_engagement_pct + '% (lo exige la campaña para aprobar el clip).');
+    }
     $('dialog-requirements').innerHTML = reqs.length
       ? reqs.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('')
       : '<li>Sin requisitos publicados.</li>';
@@ -302,7 +307,7 @@
       renderNotifications(data.notifications, data.unread);
       if (!hadNews) return;
       var page = currentPageName();
-      if (page === 'admin') { loadAdminAccounts(true); loadAdminWallet(); }
+      if (page === 'admin') { loadAdminAccounts(true); loadAdminWallet(); loadAdminClips(); }
       else if (page === 'cuentas') loadAccounts();
       else if (page === 'mis-clips') loadClips();
     } catch (e) { /* sesión vencida o sin red: se reintenta solo */ }
@@ -627,6 +632,7 @@
     $('cf-source-min').value = c && c.source_min_clip ? c.source_min_clip : 0;
     $('cf-source-max').value = c && c.source_max_clip ? c.source_max_clip : 0;
     $('cf-margin').value = c && c.margin_pct !== undefined && c.margin_pct !== null ? c.margin_pct : 50;
+    $('cf-engagement').value = c && c.source_min_engagement ? c.source_min_engagement : 0;
     $('cf-budget-total').value = c ? c.budget_total : 0;
     $('cf-budget-remaining').value = c ? c.budget_remaining : 0;
     $('cf-requirements').value = c ? c.requirements : '';
@@ -678,6 +684,7 @@
       source_min_clip: Number($('cf-source-min').value) || 0,
       source_max_clip: Number($('cf-source-max').value) || 0,
       margin_pct: $('cf-margin').value === '' ? 50 : Number($('cf-margin').value),
+      source_min_engagement: Number($('cf-engagement').value) || 0,
       budget_total: Number($('cf-budget-total').value) || 0,
       budget_remaining: Number($('cf-budget-remaining').value) || 0,
       requirements: $('cf-requirements').value.trim(),
@@ -696,6 +703,87 @@
       loadAdminTable();
     } catch (e) {
       $('campaign-error').textContent = e.message;
+    }
+  });
+
+  /* ---------------- Clips admin (fase 4) ---------------- */
+  function fmtDateShort(iso) {
+    try { return new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('es', { day: 'numeric', month: 'short' }); }
+    catch (e) { return ''; }
+  }
+
+  async function loadAdminClips() {
+    var tbodyR = $('admin-clips-review');
+    var tbodyA = $('admin-clips-approved');
+    if (!tbodyR || !tbodyA) return;
+    if (!state.user || state.user.role !== 'admin') {
+      tbodyR.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
+      tbodyA.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
+      return;
+    }
+    try {
+      var rev = await api('/api/clips/admin/review');
+      tbodyR.innerHTML = rev.clips.map(function (c) {
+        return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + esc(c.url) + '" target="_blank" rel="noopener" class="muted">' + esc(c.url) + '</a></td>' +
+          '<td>' + fmtDateShort(c.created_at) + '</td>' +
+          '<td><div class="row-actions"><button class="btn small accent" data-approve="' + c.id + '" type="button">Aprobar</button>' +
+          '<button class="btn small ghost" data-reject="' + c.id + '" type="button">Rechazar</button></div></td></tr>';
+      }).join('') || '<tr><td colspan="5">No hay clips pendientes.</td></tr>';
+    } catch (e) { tbodyR.innerHTML = '<tr><td colspan="5">No se pudo cargar.</td></tr>'; }
+
+    try {
+      var ap = await api('/api/clips/admin/approved');
+      tbodyA.innerHTML = ap.clips.map(function (c) {
+        var creditCell;
+        if (c.suggested_cents > 0) {
+          creditCell = '<button class="btn small accent" data-credit="' + c.id + '" type="button">Acreditar ' + fmtUSD(c.suggested_cents) + '</button>';
+        } else {
+          creditCell = '<span class="muted">' + esc(c.suggest_text) + '</span>';
+        }
+        return '<tr><td>' + esc(c.clipper_name) + '</td><td>' + esc(c.campaign_title) + '</td>' +
+          '<td><div class="row-actions"><input class="code-input" style="max-width:110px" type="number" min="0" step="1" value="' + c.views + '" data-views="' + c.id + '">' +
+          '<button class="btn small" data-saveviews="' + c.id + '" type="button">Guardar</button></div></td>' +
+          '<td>' + fmtUSD(c.credited_cents) + '</td><td>' + creditCell + '</td></tr>';
+      }).join('') || '<tr><td colspan="5">No hay clips aprobados.</td></tr>';
+    } catch (e) { tbodyA.innerHTML = '<tr><td colspan="5">No se pudo cargar.</td></tr>'; }
+  }
+
+  document.addEventListener('click', async function (ev) {
+    var t = ev.target;
+    if (!(t instanceof HTMLElement)) return;
+    var msg;
+    if (t.hasAttribute('data-approve')) {
+      msg = $('review-msg'); msg.textContent = '';
+      try {
+        await api('/api/clips/admin/' + t.getAttribute('data-approve') + '/approve', { method: 'POST' });
+        loadAdminClips();
+      } catch (e) { msg.textContent = e.message; }
+    } else if (t.hasAttribute('data-reject')) {
+      var motivo = prompt('Motivo del rechazo (lo verá el clipper):') || '';
+      msg = $('review-msg'); msg.textContent = '';
+      try {
+        await api('/api/clips/admin/' + t.getAttribute('data-reject') + '/reject', { method: 'POST', body: JSON.stringify({ note: motivo }) });
+        loadAdminClips();
+      } catch (e) { msg.textContent = e.message; }
+    } else if (t.hasAttribute('data-saveviews')) {
+      var id = t.getAttribute('data-saveviews');
+      var input = document.querySelector('input[data-views="' + id + '"]');
+      msg = $('credit-msg'); msg.textContent = '';
+      try {
+        await api('/api/clips/admin/' + id + '/views', { method: 'POST', body: JSON.stringify({ views: Number(input.value) }) });
+        msg.textContent = 'Vistas actualizadas.';
+        loadAdminClips();
+      } catch (e) { msg.textContent = e.message; }
+    } else if (t.hasAttribute('data-credit')) {
+      var cid = t.getAttribute('data-credit');
+      msg = $('credit-msg'); msg.textContent = '';
+      if (!confirm('¿Acreditar la ganancia sugerida a la billetera del clipper (retenida 14 días)?')) return;
+      try {
+        var r = await api('/api/clips/admin/' + cid + '/credit', { method: 'POST', body: JSON.stringify({}) });
+        msg.textContent = 'Acreditado: ' + fmtUSD(r.cents) + '.';
+        loadAdminClips(); loadAdminWallet();
+      } catch (e) { msg.textContent = e.message; }
     }
   });
 

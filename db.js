@@ -83,11 +83,12 @@ function seedCampaigns() {
   const insert = db.prepare(`
     INSERT INTO campaigns
       (title, artist, platform, category, payout_text, budget_total, budget_remaining,
-       deadline, requirements, brief, is_example, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+       deadline, requirements, brief, is_example, status,
+       source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
   `);
 
-  // Campaña REAL (datos extraídos de Lulosa el 15 oct 2026)
+  // Campaña REAL (datos extraídos de Lulosa el 18 oct 2026)
   insert.run(
     'Yuridia | Bajón Emocional',
     'Yuridia — "Bajón Emocional"',
@@ -104,12 +105,12 @@ function seedCampaigns() {
       'Letra de "Bajón Emocional" grande, legible y siempre en pantalla.',
       'Mencionar a @yuritababy.',
       'Publicar el clip como máximo 48 horas después.',
-      'Engagement mínimo del 1% después de 100 vistas.',
       'Contenido en español para América Latina, América del Norte o Europa.',
       'Quedan 198 de 200 cupos de clips.',
     ].join('\n'),
     'Solo estilos aprobados: videoclip + letra en pantalla (principal), videos de Yuridia (shows/sesiones) + letra, ediciones limpias solo de letra. Letra grande y legible siempre en pantalla, sin errores de ortografía, audio oficial obligatorio, vertical 9:16, solo TikTok. Rechazado: clips sin letra en pantalla, otros artistas, fans o memes, chismes o vida personal de Yuridia, reacciones.',
-    0
+    0,
+    3, 6, 100, 50, 1
   );
 
   // Campaña REAL (verificada en Whop el 15 oct 2026) — enfoque público latino
@@ -129,7 +130,8 @@ function seedCampaigns() {
       'Seguir el brief de cada oportunidad dentro de la red.',
     ].join('\n'),
     'Red de clipping enfocada en artistas e influencers latinos. Oportunidades recientes: Jalen FRFR ($1 por 1.000 vistas, máximo $30 por video, presupuesto $500) y MIXELSWORLD ($1 por 1.000 vistas, hasta $30 por clip, presupuesto inicial $500). Los presupuestos se agotan por orden de llegada.',
-    0
+    0,
+    0, 0, 0, 50, 0
   );
 
   // Campañas de EJEMPLO (marcadas claramente como muestra)
@@ -172,7 +174,7 @@ function seedCampaigns() {
     },
   ];
   for (const e of examples) {
-    insert.run(e.title, e.artist, e.platform, e.category, e.payout_text, 0, 0, '', e.requirements, e.brief, 1);
+    insert.run(e.title, e.artist, e.platform, e.category, e.payout_text, 0, 0, '', e.requirements, e.brief, 1, 0, 0, 0, 50, 0);
   }
 }
 
@@ -223,7 +225,30 @@ function migrateWallet() {
   db.exec('CREATE INDEX IF NOT EXISTS idx_wallet_tx_user ON wallet_tx(user_id)');
 }
 migrateCampaignMargins();
+// Migración: acreditación de ganancias por clip (fase 4).
+// credited_views/cents = vistas y monto ya acreditados a la billetera (evita pagar doble).
+// admin_note = motivo del rechazo o nota interna del admin.
+function migrateClipEarnings() {
+  const cols = db.prepare('PRAGMA table_info(clips)').all().map((c) => c.name);
+  const add = (name, def) => {
+    if (!cols.includes(name)) db.exec(`ALTER TABLE clips ADD COLUMN ${name} ${def}`);
+  };
+  add('credited_views', 'INTEGER NOT NULL DEFAULT 0');
+  add('credited_cents', 'INTEGER NOT NULL DEFAULT 0');
+  add('admin_note', "TEXT DEFAULT ''");
+}
 migrateWallet();
+// Migración: engagement mínimo como requisito (corrección de Wilson 2026-10-18:
+// en la fuente no aprueban sin mínimo de vistas NI mínimo de interacción).
+// source_min_engagement = % mínimo de engagement exigido (0 = no especificado).
+function migrateCampaignEngagement() {
+  const cols = db.prepare('PRAGMA table_info(campaigns)').all().map((c) => c.name);
+  if (!cols.includes('source_min_engagement')) {
+    db.exec('ALTER TABLE campaigns ADD COLUMN source_min_engagement REAL NOT NULL DEFAULT 0');
+  }
+}
+migrateClipEarnings();
+migrateCampaignEngagement();
 seedCampaigns();
 
 // Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin

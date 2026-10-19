@@ -12,11 +12,17 @@ const PUBLIC_FIELDS = `
 `;
 
 // Campos solo para el admin (la tarifa fuente NUNCA sale en la API pública).
-const ADMIN_FIELDS = PUBLIC_FIELDS + `, source_per_1k, source_min_clip, source_max_clip, margin_pct`;
+const ADMIN_FIELDS = PUBLIC_FIELDS + `, source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement`;
 
 // La vista pública necesita leer la tarifa fuente para calcular la del clipper,
 // pero toCampaign() la elimina antes de responder.
 const COMPUTE_FIELDS = ADMIN_FIELDS;
+
+function cleanEngagement(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(100, n);
+}
 
 function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
@@ -58,6 +64,9 @@ function toCampaign(row) {
   delete out.source_min_clip;
   delete out.source_max_clip;
   delete out.margin_pct;
+  // El engagement mínimo SÍ es público: es un requisito que el clipper debe cumplir.
+  out.min_engagement_pct = Math.min(100, Math.max(0, Number(row.source_min_engagement) || 0));
+  delete out.source_min_engagement;
   // El origen (Lulosa/Whop) tampoco: el clipper no debe saber de dónde viene.
   out.platform = '';
   return out;
@@ -109,8 +118,8 @@ router.post('/', requireAdmin, (req, res) => {
       INSERT INTO campaigns
         (title, artist, platform, category, payout_text, budget_total, budget_remaining,
          deadline, requirements, brief, is_example, status,
-         source_per_1k, source_min_clip, source_max_clip, margin_pct)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       title,
@@ -128,7 +137,8 @@ router.post('/', requireAdmin, (req, res) => {
       Math.max(0, Number(b.source_per_1k) || 0),
       Math.max(0, Number(b.source_min_clip) || 0),
       Math.max(0, Number(b.source_max_clip) || 0),
-      margin
+      margin,
+      cleanEngagement(b.source_min_engagement)
     );
 
   const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(info.lastInsertRowid);
@@ -151,7 +161,8 @@ router.put('/:id', requireAdmin, (req, res) => {
         title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
         budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
         brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
-        source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?
+        source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
+        source_min_engagement = ?
       WHERE id = ?
     `).run(
     title,
@@ -170,6 +181,7 @@ router.put('/:id', requireAdmin, (req, res) => {
     Math.max(0, Number(b.source_min_clip) || 0),
     Math.max(0, Number(b.source_max_clip) || 0),
     margin,
+    cleanEngagement(b.source_min_engagement),
     req.params.id
   );
 

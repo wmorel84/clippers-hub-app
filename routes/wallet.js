@@ -44,6 +44,27 @@ function balances(userId) {
     .get(userId);
 }
 
+function fmtDateES(iso) {
+  return new Date(iso + 'Z').toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Acredita una ganancia retenida HOLD_DAYS días. Devuelve { id, available_at }.
+// Lo usan el panel de billetera y la fase 4 (aprobación de clips).
+function creditHeldEarning(userId, cents, campaignTitle, note) {
+  const info = db
+    .prepare(
+      "INSERT INTO wallet_tx (user_id, kind, amount_cents, status, available_at, campaign_title, note) VALUES (?, 'earning', ?, 'held', datetime('now', ?), ?, ?)"
+    )
+    .run(userId, cents, '+' + HOLD_DAYS + ' days', campaignTitle || '', note || '');
+  const release = db.prepare('SELECT available_at FROM wallet_tx WHERE id = ?').get(info.lastInsertRowid).available_at;
+  notify(
+    userId,
+    'Nueva ganancia registrada: US$' + (cents / 100).toFixed(2),
+    ((campaignTitle || '') + (note ? '. ' + note : '')).trim() + ' Se libera el ' + fmtDateES(release) + ' (retención antifraude de ' + HOLD_DAYS + ' días).'
+  );
+  return { id: info.lastInsertRowid, available_at: release };
+}
+
 function txsFor(userId, limit) {
   return db
     .prepare(
@@ -140,20 +161,8 @@ router.post('/admin/credit', requireAdmin, (req, res) => {
   if (!target) return res.status(404).json({ error: 'Clipper no encontrado.' });
   if (!cents) return res.status(400).json({ error: 'Monto inválido. Usa un número mayor a 0.' });
 
-  const info = db
-    .prepare(
-      "INSERT INTO wallet_tx (user_id, kind, amount_cents, status, available_at, campaign_title, note) VALUES (?, 'earning', ?, 'held', datetime('now', ?), ?, ?)"
-    )
-    .run(userId, cents, '+' + HOLD_DAYS + ' days', campaign, note);
-
-  const release = db.prepare('SELECT available_at FROM wallet_tx WHERE id = ?').get(info.lastInsertRowid).available_at;
-  const fecha = new Date(release + 'Z').toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
-  notify(
-    userId,
-    'Nueva ganancia registrada: US$' + (cents / 100).toFixed(2),
-    (campaign ? campaign + '. ' : '') + 'Se libera el ' + fecha + ' (retención antifraude de ' + HOLD_DAYS + ' días).'
-  );
-  res.json({ ok: true, id: info.lastInsertRowid });
+  const tx = creditHeldEarning(userId, cents, campaign, note);
+  res.json({ ok: true, id: tx.id });
 });
 
 // POST /api/wallet/admin/payout — registrar pago enviado por PANA
@@ -200,3 +209,5 @@ router.post('/admin/adjust', requireAdmin, (req, res) => {
 });
 
 module.exports = router;
+module.exports.creditHeldEarning = creditHeldEarning;
+module.exports.HOLD_DAYS = HOLD_DAYS;

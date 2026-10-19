@@ -182,6 +182,24 @@
           </table></div>
         </div>
         <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Clips por revisar</h3>
+          <p style="color:var(--muted)">Aprueba los clips que sí vas a subir a la fuente, o recházalos con el motivo. El clipper recibe el aviso.</p>
+          <div class="table-wrap"><table class="admin-table">
+            <thead><tr><th>Clipper</th><th>Campaña</th><th>URL</th><th>Enviado</th><th>Acciones</th></tr></thead>
+            <tbody id="admin-clips-review"></tbody>
+          </table></div>
+          <p id="review-msg" style="color:var(--muted)"></p>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Clips aprobados y ganancias</h3>
+          <p style="color:var(--muted)">Actualiza las vistas de cada clip y acredita su ganancia a la tarifa del clipper (queda retenida 14 días). El monto sugerido respeta el mínimo y el máximo por clip.</p>
+          <div class="table-wrap"><table class="admin-table">
+            <thead><tr><th>Clipper</th><th>Campaña</th><th>Vistas</th><th>Acreditado</th><th>Acreditar</th></tr></thead>
+            <tbody id="admin-clips-approved"></tbody>
+          </table></div>
+          <p id="credit-msg" style="color:var(--muted)"></p>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
           <h3>Billetera de clippers</h3>
           <p style="color:var(--muted)">Registra las ganancias cuando la fuente apruebe los clips (quedan retenidas 14 días como antifraude) y los pagos que envíes por PANA. El clipper guarda su cuenta PANA en su Billetera.</p>
           <div class="table-wrap"><table class="admin-table">
@@ -339,6 +357,9 @@
           </div>
           <div class="field-row">
             <div class="field"><label for="cf-margin">Tu margen (%)</label><input id="cf-margin" type="number" min="0" max="100" step="1" value="50" /></div>
+            <div class="field"><label for="cf-engagement">Engagement mínimo (%) — lo ve el clipper como requisito</label><input id="cf-engagement" type="number" min="0" max="100" step="0.1" value="0" /></div>
+          </div>
+          <div class="field-row">
             <div class="field"><label>El clipper verá</label><p id="cf-clipper-preview" class="muted" style="margin:8px 0"></p></div>
           </div>
           <div class="field-row">
