@@ -197,7 +197,29 @@ function seedUserNotifications(userId) {
 }
 
 initSchema();
+migrateGoogleSub();
+migrateCampaignMargins();
 seedCampaigns();
+
+// Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin
+// creado con el script), para probar la campana sin datos inventados de otros.
+function seedUserNotifications(userId) {
+  const count = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ?').get(userId).n;
+  if (count > 0) return;
+  const insert = db.prepare(
+    'INSERT INTO notifications (user_id, title, body) VALUES (?, ?, ?)'
+  );
+  insert.run(
+    userId,
+    'Bienvenido al Hub de Wilson',
+    'Esta es una notificación de ejemplo. Aquí verás avisos de campañas y pagos.'
+  );
+  insert.run(
+    userId,
+    'Campaña real disponible',
+    'Yuridia | Bajón Emocional está activa hasta el 15 nov 2026. Revisa el brief en Campañas.'
+  );
+}
 
 // Migración: columna google_sub para el login con Google.
 // En BDs ya creadas agrega la columna; en BDs nuevas no existe aún.
@@ -210,7 +232,6 @@ function migrateGoogleSub() {
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL'
   );
 }
-migrateGoogleSub();
 
 // Migración: tarifas con margen por campaña (fase 2 del modelo Clippers Pro).
 // source_* = lo que paga la fuente (solo admin); margin_pct = margen de Wilson;
@@ -226,7 +247,6 @@ function migrateCampaignMargins() {
   add('source_max_clip', 'REAL NOT NULL DEFAULT 0');
   add('margin_pct', 'REAL NOT NULL DEFAULT 50');
 }
-migrateCampaignMargins();
 
 // Crea el primer administrador desde variables de entorno.
 // Solo actúa si ADMIN_EMAIL y ADMIN_PASSWORD están definidas y ese correo

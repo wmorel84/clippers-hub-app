@@ -46,19 +46,20 @@ function clipperPayoutText(row) {
 }
 
 function toCampaign(row) {
-  // Vista pública: tarifa del clipper y presupuesto a su tarifa.
-  // (El presupuesto fuente × (1 - margen) cubre las mismas vistas.)
-  const scaled = Number(row.source_per_1k) > 0;
-  const f = scaled ? marginFactor(row) : 1;
+  // Vista pública: tarifa del clipper calculada con el margen.
+  // El presupuesto se muestra TAL CUAL se ve en la fuente (sin escalar),
+  // porque Wilson lo actualiza manualmente desde ahí.
   const out = { ...row, is_example: row.is_example === 1 };
   out.payout_text = clipperPayoutText(row);
-  out.budget_total = round2(Number(row.budget_total) * f);
-  out.budget_remaining = round2(Number(row.budget_remaining) * f);
+  out.budget_total = round2(row.budget_total);
+  out.budget_remaining = round2(row.budget_remaining);
   // La tarifa fuente y el margen NUNCA salen en la respuesta pública.
   delete out.source_per_1k;
   delete out.source_min_clip;
   delete out.source_max_clip;
   delete out.margin_pct;
+  // El origen (Lulosa/Whop) tampoco: el clipper no debe saber de dónde viene.
+  out.platform = '';
   return out;
 }
 

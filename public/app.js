@@ -121,7 +121,7 @@
       card.innerHTML =
         '<div class="card-top"><span class="badge ' + (c.is_example ? 'example' : 'real') + '">' +
         (c.is_example ? 'EJEMPLO' : 'CAMPAÑA REAL') + '</span>' +
-        '<span class="platform-tag">' + esc(c.platform || '') + '</span></div>' +
+        (c.platform ? '<span class="platform-tag">' + esc(c.platform) + '</span>' : '') + '</div>' +
         '<h3>' + esc(c.title) + '</h3>' +
         (c.artist ? '<p class="artist">' + esc(c.artist) + '</p>' : '') +
         (c.payout_text ? '<p class="pay">' + esc(c.payout_text) + '</p>' : '') +
