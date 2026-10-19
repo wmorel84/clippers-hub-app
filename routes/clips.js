@@ -61,23 +61,21 @@ function isValidUrl(url) {
   }
 }
 
-// Estima la ganancia TOTAL generada por un clip según sus vistas, a la tarifa
-// del clipper (fuente × (1 − margen)), respetando mínimo de vistas y máximo
-// por clip. Devuelve { cents, note, minViews }. note: 'ok' | 'manual' | 'min'.
+// Estima la ganancia generada por un clip, SIEMPRE proporcional a sus vistas,
+// a la tarifa del clipper (fuente × (1 − margen)), con tope del máximo por clip.
+// meetsMin indica si ya alcanzó el mínimo de vistas para ser pagable.
+// Devuelve { cents, note, minViews, meetsMin }. note: 'ok' | 'manual'.
 function estimateTotal(clip) {
   const margin = Math.min(100, Math.max(0, Number(clip.margin_pct) || 0));
   const rate = Number(clip.source_per_1k) * (1 - margin / 100);
   if (!(Number(clip.source_per_1k) > 0) || !(rate > 0)) {
-    return { cents: 0, note: 'manual', minViews: 0 };
+    return { cents: 0, note: 'manual', minViews: 0, meetsMin: false };
   }
-  const minViews = (Number(clip.source_min_clip) / Number(clip.source_per_1k)) * 1000;
-  if (clip.views < minViews) {
-    return { cents: 0, note: 'min', minViews: Math.round(minViews) };
-  }
+  const minViews = Math.round((Number(clip.source_min_clip) / Number(clip.source_per_1k)) * 1000);
   const maxCents = Math.round(Number(clip.source_max_clip) * (1 - margin / 100) * 100);
   let cents = Math.round((clip.views / 1000) * rate * 100);
   if (maxCents > 0) cents = Math.min(cents, maxCents);
-  return { cents, note: 'ok', minViews: 0 };
+  return { cents, note: 'ok', minViews, meetsMin: clip.views >= minViews };
 }
 
 // GET /api/clips — clips del usuario actual
@@ -103,7 +101,9 @@ router.get('/', requireAuth, (req, res) => {
         created_at: c.created_at, campaign_title: c.campaign_title,
         credited_cents: c.credited_cents,
         estimated_cents: e.cents,
-        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : '',
+        meets_minimum: e.meetsMin,
+        min_views: e.minViews,
+        estimate_note: e.note === 'manual' ? 'Pago manual' : '',
       };
     }),
   });
@@ -152,7 +152,9 @@ router.get('/admin/review', requireAdmin, (req, res) => {
         id: c.id, url: c.url, views: c.views, created_at: c.created_at,
         clipper_name: c.clipper_name, campaign_title: c.campaign_title,
         estimated_cents: e.cents,
-        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : (e.note === 'manual' ? 'Pago manual' : ''),
+        meets_minimum: e.meetsMin,
+        min_views: e.minViews,
+        estimate_note: e.note === 'manual' ? 'Pago manual' : '',
       };
     }),
   });
@@ -182,7 +184,8 @@ router.get('/admin/approved', requireAdmin, (req, res) => {
         credited_views: c.credited_views, credited_cents: c.credited_cents,
         created_at: c.created_at, clipper_name: c.clipper_name, campaign_title: c.campaign_title,
         estimated_cents: e.cents,
-        estimate_note: e.note === 'min' ? 'Mínimo: ' + e.minViews.toLocaleString('es') + ' vistas' : '',
+        meets_minimum: e.meetsMin,
+        estimate_note: e.note === 'manual' ? 'Pago manual' : '',
         suggested_cents: s.cents, suggest_reason: s.reason,
         suggest_text: s.reason === 'ok' ? '' : suggestReasonText(s),
         min_views: s.minViews || 0, new_views: s.newViews || 0,

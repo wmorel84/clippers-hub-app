@@ -398,11 +398,12 @@
 
   function fmtUSD(cents) { return 'US$' + (cents / 100).toFixed(2); }
 
-  // Celda de ganancia estimada con color: amarillo si cumple el mínimo, rojo si no.
+  // Celda de ganancia estimada con color: siempre proporcional a las vistas;
+  // amarillo si ya cumple el mínimo (pagable), rojo si aún no lo cumple.
   function estCell(c) {
-    return c.estimated_cents > 0
-      ? '<span class="est-met">' + fmtUSD(c.estimated_cents) + '</span>'
-      : '<span class="est-below">' + esc(c.estimate_note || '—') + '</span>';
+    if (c.estimate_note) return '<span class="muted">' + esc(c.estimate_note) + '</span>';
+    var tip = c.meets_minimum ? '' : ' title="Aún no alcanza el mínimo de ' + Number(c.min_views || 0).toLocaleString('es') + ' vistas"';
+    return '<span class="' + (c.meets_minimum ? 'est-met' : 'est-below') + '"' + tip + '>' + fmtUSD(c.estimated_cents) + '</span>';
   }
   // Celda de monto acreditado: verde cuando es mayor a cero.
   function creditedCell(cents) {

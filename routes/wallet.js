@@ -115,7 +115,10 @@ router.get('/', requireAuth, (req, res) => {
        WHERE clips.user_id = ? AND clips.status != 'rejected'`
     )
     .all(req.session.userId);
-  const estimatedTotalCents = clipRows.reduce((sum, c) => sum + estimateTotal(c).cents, 0);
+  const estimatedTotalCents = clipRows.reduce((sum, c) => {
+    const e = estimateTotal(c);
+    return sum + (e.meetsMin ? e.cents : 0);
+  }, 0);
 
   res.json({
     wallet: {
