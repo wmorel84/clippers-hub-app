@@ -3,6 +3,8 @@
   'use strict';
 
   var state = { user: null, campaigns: [], filter: 'all', query: '', editingId: null };
+  var lastUnread = 0; // para detectar notificaciones nuevas en el sondeo automático
+  var POLL_MS = 30000; // cada cuánto se buscan novedades (30 segundos)
 
   function $(id) { return document.getElementById(id); }
 
@@ -277,9 +279,35 @@
     if (!state.user) { renderNotifications([], 0); return; }
     try {
       var data = await api('/api/notifications');
+      lastUnread = data.unread;
       renderNotifications(data.notifications, data.unread);
     } catch (e) { renderNotifications([], 0); }
   }
+
+  /* ---------------- Sondeo automático de novedades ---------------- */
+  // Cada POLL_MS revisa si hay notificaciones nuevas y, si las hay, refresca
+  // la vista actual (sin borrar lo que el admin esté escribiendo en los campos
+  // de código). Así los cambios del otro lado aparecen solos, sin recargar.
+  function currentPageName() {
+    var page = document.querySelector('.app-page:not([hidden])');
+    return page ? page.getAttribute('data-page') : null;
+  }
+
+  async function pollUpdates() {
+    if (!state.user || document.hidden) return;
+    try {
+      var data = await api('/api/notifications');
+      var hadNews = data.unread > lastUnread;
+      lastUnread = data.unread;
+      renderNotifications(data.notifications, data.unread);
+      if (!hadNews) return;
+      var page = currentPageName();
+      if (page === 'admin') loadAdminAccounts(true);
+      else if (page === 'cuentas') loadAccounts();
+      else if (page === 'mis-clips') loadClips();
+    } catch (e) { /* sesión vencida o sin red: se reintenta solo */ }
+  }
+  setInterval(pollUpdates, POLL_MS);
 
   $('notifications-toggle').addEventListener('click', function () {
     var panel = $('notifications-panel');
@@ -428,6 +456,7 @@
             body: JSON.stringify({ platform: $('acc-platform').value, profile_url: $('acc-url').value.trim() })
           });
           loadAccounts();
+          loadNotifications();
         } catch (e) { $('account-error').textContent = e.message; }
       });
       card.querySelectorAll('[data-confirm]').forEach(function (btn) {
@@ -435,6 +464,7 @@
           try {
             await api('/api/accounts/' + btn.getAttribute('data-confirm') + '/confirm-code', { method: 'POST' });
             loadAccounts();
+            loadNotifications();
           } catch (e) { alert(e.message); }
         });
       });
@@ -450,12 +480,19 @@
     } catch (e) { card.innerHTML = '<p>No se pudieron cargar tus cuentas.</p>'; }
   }
 
-  async function loadAdminAccounts() {
+  async function loadAdminAccounts(preserveInputs) {
     var tbody = $('admin-accounts-rows');
     if (!tbody) return;
     if (!state.user || state.user.role !== 'admin') {
       tbody.innerHTML = '<tr><td colspan="5">Sin permiso.</td></tr>';
       return;
+    }
+    // Guarda lo que el admin esté escribiendo para no borrarlo al refrescar.
+    var typed = {};
+    if (preserveInputs) {
+      tbody.querySelectorAll('[data-code]').forEach(function (inp) {
+        typed[inp.getAttribute('data-code')] = inp.value;
+      });
     }
     try {
       var data = await api('/api/accounts/admin/all');
@@ -482,6 +519,11 @@
           '<td><span class="' + accountBadgeClass(a.status) + '">' + esc(accountStatusLabel[a.status] || a.status) + '</span></td>' +
           '<td><div class="row-actions">' + actions + '</div></td></tr>';
       }).join('');
+      // Restaura lo que el admin estaba escribiendo antes del refresco.
+      tbody.querySelectorAll('[data-code]').forEach(function (inp) {
+        var id = inp.getAttribute('data-code');
+        if (typed[id] !== undefined && typed[id] !== inp.value) inp.value = typed[id];
+      });
       tbody.querySelectorAll('[data-sendcode]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           var id = btn.getAttribute('data-sendcode');
@@ -491,6 +533,7 @@
           try {
             await api('/api/accounts/admin/' + id + '/send-code', { method: 'POST', body: JSON.stringify({ code: code }) });
             loadAdminAccounts();
+            loadNotifications();
           } catch (e) { alert(e.message); }
         });
       });
@@ -500,6 +543,7 @@
           try {
             await api('/api/accounts/admin/' + btn.getAttribute('data-verify') + '/verify', { method: 'POST' });
             loadAdminAccounts();
+            loadNotifications();
           } catch (e) { alert(e.message); }
         });
       });
@@ -509,6 +553,7 @@
           try {
             await api('/api/accounts/admin/' + btn.getAttribute('data-reject') + '/reject', { method: 'POST', body: JSON.stringify({ note: note }) });
             loadAdminAccounts();
+            loadNotifications();
           } catch (e) { alert(e.message); }
         });
       });
