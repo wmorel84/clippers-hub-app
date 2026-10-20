@@ -128,18 +128,84 @@ function updateCampaign(id, c) {
         budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
         brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
         source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
-        source_min_engagement = ?, image_url = ?
+        source_min_engagement = ?, image_url = CASE WHEN ? <> '' THEN ? ELSE image_url END
       WHERE id = ?
     `).run(
     c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
     c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement,
-    c.image_url,
+    c.image_url, c.image_url,
     id
   );
 }
 
-// GET /api/campaigns/admin/all — solo admin: incluye tarifa fuente y margen.
+// ---------- Imagen automática (pedido de Wilson, 20 oct 2026) ----------
+// Cuando una campaña queda sin imagen, la app busca sola la foto del artista
+// en Wikipedia (español, luego inglés) y guarda la URL. Si no hay foto, usa
+// una temática local por defecto (música). Solo rellena campos vacíos: una
+// imagen puesta a mano en el panel siempre se respeta.
+const AUTO_IMAGE_FALLBACK = { musica: '/img/campaigns/la-movida.jpg' };
+
+async function wikiImage(name) {
+  for (const lang of ['es', 'en']) {
+    try {
+      const url = 'https://' + lang + '.wikipedia.org/api/rest_v1/page/summary/' +
+        encodeURIComponent(String(name).trim().replace(/ /g, '_'));
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'ClippersPro/1.0 (imagen automatica de campana)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (d.type && d.type !== 'standard') continue; // evita desambiguaciones
+      const img = (d.originalimage && d.originalimage.source) || (d.thumbnail && d.thumbnail.source);
+      if (img && /\.(jpe?g|png)$/i.test(img.split('?')[0])) return img;
+    } catch (e) { /* se prueba el siguiente idioma */ }
+  }
+  return '';
+}
+
+function artistCandidates(artist, title) {
+  const names = [];
+  const raw = String(artist || '').trim();
+  if (raw) {
+    names.push(raw);
+    raw.split(/\s*(?:&| y | ft\.? | feat\.? |,)\s*/i).forEach((p) => {
+      const t = p.trim();
+      if (t && !names.includes(t)) names.push(t);
+    });
+  }
+  const head = String(title || '').split('|')[0].split(' - ')[0].trim();
+  if (head && !names.includes(head)) names.push(head);
+  return names;
+}
+
+async function autoImageFor(row) {
+  const names = artistCandidates(row.artist, row.title);
+  for (const n of names) {
+    const img = await wikiImage(n);
+    if (img) return img;
+  }
+  return AUTO_IMAGE_FALLBACK[row.category] || '';
+}
+
+// Rellena en segundo plano la imagen de una campaña si quedó vacía.
+// No bloquea la respuesta al admin; si algo falla, la campaña queda sin
+// imagen y se reintenta en la próxima actualización que la toque.
+function fillImageAsync(id) {
+  try {
+    const row = db.prepare('SELECT id, title, artist, category, image_url FROM campaigns WHERE id = ?').get(id);
+    if (!row || row.image_url) return;
+    autoImageFor(row)
+      .then((img) => {
+        if (img) {
+          db.prepare("UPDATE campaigns SET image_url = ? WHERE id = ? AND (image_url IS NULL OR image_url = '')").run(img, id);
+        }
+      })
+      .catch(() => {});
+  } catch (e) { /* sin imagen por ahora */ }
+}
+
 // OJO: registrada antes de /:id para que "admin" no se interprete como un id.
 router.get('/admin/all', requireAdmin, (req, res) => {
   const rows = db
@@ -174,6 +240,7 @@ router.post('/', requireAdmin, (req, res) => {
   try { c = sanitizeCampaign(req.body); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   const id = insertCampaign(c);
+  fillImageAsync(id);
   const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(id);
   res.status(201).json({ campaign: toAdminCampaign(row) });
 });
@@ -192,8 +259,8 @@ router.post('/admin/import', requireAdmin, (req, res) => {
     try {
       const c = sanitizeCampaign(b);
       const ex = find.get(c.title);
-      if (ex) { updateCampaign(ex.id, c); updated++; }
-      else { insertCampaign(c); inserted++; }
+      if (ex) { updateCampaign(ex.id, c); updated++; fillImageAsync(ex.id); }
+      else { const nid = insertCampaign(c); inserted++; fillImageAsync(nid); }
     } catch (e) {
       errors.push({ title: (b && b.title) || '(sin título)', error: e.message });
     }
@@ -209,6 +276,7 @@ router.put('/:id', requireAdmin, (req, res) => {
   try { c = sanitizeCampaign(req.body); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   updateCampaign(req.params.id, c);
+  fillImageAsync(req.params.id);
   const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(req.params.id);
   res.json({ campaign: toAdminCampaign(row) });
 });
