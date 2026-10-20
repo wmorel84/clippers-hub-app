@@ -60,6 +60,12 @@ app.get('/privacidad', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'privacidad.html'));
 });
 
+// Página propia del brief de cada campaña: /campana/<id>
+// (antes el brief se abría en una ventana emergente; Wilson pidió página con su enlace)
+app.get('/campana/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'brief.html'));
+});
+
 // Manejo de errores JSON
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

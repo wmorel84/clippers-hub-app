@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var state = { user: null, campaigns: [], filter: 'all', query: '', editingId: null };
+  var state = { user: null, campaigns: [], filter: 'all', query: '', editingId: null, pendingSubmit: null };
   var lastUnread = 0; // para detectar notificaciones nuevas en el sondeo automático
   var POLL_MS = 30000; // cada cuánto se buscan novedades (30 segundos)
 
@@ -119,6 +119,7 @@
       var card = document.createElement('article');
       card.className = 'card';
       card.innerHTML =
+        (c.image_url ? '<a href="/campana/' + c.id + '" aria-label="Ver brief de ' + esc(c.title) + '"><img class="card-img" src="' + esc(c.image_url) + '" alt="" loading="lazy"></a>' : '') +
         '<div class="card-top">' +
         (c.is_example ? '<span class="badge example">EJEMPLO</span>' : '') +
         (c.platform ? '<span class="platform-tag">' + esc(c.platform) + '</span>' : '') + '</div>' +
@@ -126,12 +127,9 @@
         (c.artist ? '<p class="artist">' + esc(c.artist) + '</p>' : '') +
         (c.payout_text ? '<p class="pay">' + esc(c.payout_text) + '</p>' : '') +
         budgetHtml(c) +
-        '<div class="card-actions"><button class="btn small" data-detail="' + c.id + '">Ver brief</button>' +
+        '<div class="card-actions"><a class="btn small" href="/campana/' + c.id + '">Ver brief</a>' +
         (c.is_example ? '' : ' <button class="btn small primary" data-submit="' + c.id + '">Enviar clip</button>') + '</div>';
       grid.appendChild(card);
-    });
-    grid.querySelectorAll('[data-detail]').forEach(function (btn) {
-      btn.addEventListener('click', function () { openDetail(Number(btn.getAttribute('data-detail'))); });
     });
     grid.querySelectorAll('[data-submit]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -161,46 +159,6 @@
     }
   }
 
-  function openDetail(id) {
-    var c = state.campaigns.find(function (x) { return x.id === id; });
-    if (!c) return;
-    state.detailCampaignId = c.id;
-    $('dialog-source').textContent = c.platform ? 'ORIGEN: ' + c.platform.toUpperCase() : '';
-    $('dialog-category').textContent = c.category || '';
-    var badge = $('dialog-badge');
-    if (c.is_example) {
-      badge.textContent = 'EJEMPLO';
-      badge.className = 'badge example';
-      badge.style.display = '';
-    } else {
-      badge.style.display = 'none';
-    }
-    $('dialog-title').textContent = c.title;
-    $('dialog-artist').textContent = c.artist || '';
-    $('dialog-pay').textContent = c.payout_text || '—';
-    $('dialog-date').textContent = c.deadline ? 'Termina ' + fmtDate(c.deadline) : 'Sin fecha límite';
-    var reqs = (c.requirements || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
-    // El engagement mínimo es un requisito estructurado: se muestra salvo que el
-    // texto ya lo mencione (para no duplicarlo).
-    if (c.min_engagement_pct > 0 && !/engagement/i.test(c.requirements || '')) {
-      reqs.push('Engagement mínimo del ' + c.min_engagement_pct + '% (lo exige la campaña para aprobar el clip).');
-    }
-    $('dialog-requirements').innerHTML = reqs.length
-      ? reqs.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('')
-      : '<li>Sin requisitos publicados.</li>';
-    $('dialog-brief').textContent = c.brief || '';
-    var wrap = $('dialog-budget-wrap');
-    if (budgetPct(c) === null) { wrap.hidden = true; }
-    else {
-      wrap.hidden = false;
-      var pct = budgetPct(c);
-      $('dialog-budget-numbers').textContent = 'US$ ' + c.budget_remaining + ' de US$ ' + c.budget_total + ' · ' + pct + '% disponible';
-      $('dialog-budget-fill').style.width = pct + '%';
-      $('dialog-budget-updated').textContent = 'Actualizado: ' + fmtDateTime(c.updated_at);
-    }
-    $('detail-dialog').showModal();
-  }
-  $('close-dialog').addEventListener('click', function () { $('detail-dialog').close(); });
 
   /* ---------------- Auth ---------------- */
   var authMode = 'login';
@@ -241,6 +199,13 @@
 
   function setUser(user) {
     state.user = user;
+    // Si llegó desde el botón «Enviar clip» de la página del brief (/?submit=<id>)
+    // y ya inició sesión, se abre el formulario de envío con esa campaña.
+    if (user && state.pendingSubmit) {
+      var p = state.pendingSubmit;
+      state.pendingSubmit = null;
+      setTimeout(function () { openSubmit(p); }, 60);
+    }
     var area = $('auth-area');
     if (user) {
       var initial = esc((user.name || user.email || '?').charAt(0).toUpperCase());
@@ -362,10 +327,6 @@
   }
   $('sb-submit').addEventListener('click', function () { openSubmit(null); });
   $('close-submit').addEventListener('click', function () { $('submit-dialog').close(); });
-  $('dialog-submit-clip').addEventListener('click', function () {
-    $('detail-dialog').close();
-    openSubmit(state.detailCampaignId || null);
-  });
   $('submit-goto-login').addEventListener('click', function () {
     $('submit-dialog').close(); openAuth();
   });
@@ -668,6 +629,7 @@
     $('cf-budget-remaining').value = c ? c.budget_remaining : 0;
     $('cf-requirements').value = c ? c.requirements : '';
     $('cf-brief').value = c ? c.brief : '';
+    $('cf-image-url').value = c ? (c.image_url || '') : '';
     $('cf-status').value = c ? c.status : 'active';
     $('cf-example').checked = c ? !!c.is_example : false;
     $('campaign-error').textContent = '';
@@ -720,6 +682,7 @@
       budget_remaining: Number($('cf-budget-remaining').value) || 0,
       requirements: $('cf-requirements').value.trim(),
       brief: $('cf-brief').value.trim(),
+      image_url: $('cf-image-url').value.trim(),
       status: $('cf-status').value,
       is_example: $('cf-example').checked
     };
@@ -1013,6 +976,12 @@
   window.initGoogleLogin = initGoogleLogin;
 
   /* ---------------- Init ---------------- */
+  // Enlace desde la página del brief: /?submit=<id de campaña>
+  var submitParam = new URLSearchParams(window.location.search).get('submit');
+  if (submitParam) state.pendingSubmit = Number(submitParam) || null;
   loadCampaigns();
-  checkSession();
+  checkSession().then(function () {
+    // Sin sesión: se pide iniciar sesión primero; al entrar, setUser abre el envío.
+    if (state.pendingSubmit && !state.user) openAuth();
+  });
 })();

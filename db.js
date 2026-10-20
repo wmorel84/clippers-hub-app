@@ -298,6 +298,44 @@ function migrateCampaignMargins() {
   add('margin_pct', 'REAL NOT NULL DEFAULT 50');
 }
 
+// Imagen de portada por campaña (pedido de Wilson, 20 oct 2026): columna
+// image_url + asignación inicial de las imágenes locales según el título.
+// Solo rellena las que están vacías: lo que Wilson cambie a mano se respeta.
+function migrateCampaignImages() {
+  const cols = db.prepare('PRAGMA table_info(campaigns)').all().map((c) => c.name);
+  if (!cols.includes('image_url')) {
+    db.exec("ALTER TABLE campaigns ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
+  }
+  const MAP = [
+    ['Yuridia%', 'yuridia'],
+    ['La Movida%', 'la-movida'],
+    ['Charli XCX%', 'charli-madonna'],
+    ['Pedro Capó%', 'pedro-capo'],
+    ['%Nsqk%', 'nsqk'],
+    ['ALWAYS ON%', 'emilia'],
+    ['Xavi |%', 'xavi'],
+    ['Fabio Capri%', 'fabio-capri'],
+    ['Juanes%', 'juanes'],
+    ['Rios |%', 'rios'],
+    ['El Malilla%', 'el-malilla'],
+    ['Aria Vega%', 'aria-vega'],
+    ['Karol G%', 'karol-g'],
+    ['Serenity AI%', 'serenity'],
+    ['Judeline%', 'judeline'],
+    ['Sebastián Yatra%', 'yatra'],
+    ['Latin Mafia%', 'latin-mafia'],
+    ['Maná |%', 'mana'],
+    ['YO SOY EXITO%', 'javier-hispano'],
+    ['RNA release%', 'rna'],
+    ['Laué Frizzante%', 'laue'],
+  ];
+  const upd = db.prepare(
+    "UPDATE campaigns SET image_url = ? WHERE title LIKE ? AND (image_url IS NULL OR image_url = '')"
+  );
+  for (const [pattern, slug] of MAP) upd.run('/img/campaigns/' + slug + '.jpg', pattern);
+}
+migrateCampaignImages();
+
 // Crea el primer administrador desde variables de entorno.
 // Solo actúa si ADMIN_EMAIL y ADMIN_PASSWORD están definidas y ese correo
 // aún no existe. Pensado para el primer despliegue en Railway.

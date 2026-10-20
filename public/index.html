@@ -9,7 +9,7 @@
   <title>Clippers Pro — Campañas para clippers</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=Newsreader:opsz,wght@6..72,500..700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -252,33 +252,6 @@
   </div>
 
   <!-- Detalle de campaña -->
-  <dialog id="detail-dialog" aria-labelledby="dialog-title">
-    <div class="dialog-body">
-      <button class="close" id="close-dialog" aria-label="Cerrar detalles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      <div class="source-row"><span id="dialog-source"></span></div>
-      <div class="card-top" style="margin-bottom:8px"><span class="badge" id="dialog-badge"></span><span class="platform-tag" id="dialog-category"></span></div>
-      <h2 id="dialog-title"></h2>
-      <p id="dialog-artist" style="color:var(--muted)"></p>
-      <div class="detail-grid">
-        <div class="detail-box"><span>Pago</span><strong id="dialog-pay"></strong></div>
-        <div class="detail-box"><span>Vigencia</span><strong id="dialog-date"></strong></div>
-      </div>
-      <div class="budget" id="dialog-budget-wrap">
-        <div class="budget-label"><span>Presupuesto restante</span><span id="dialog-budget-numbers"></span></div>
-        <div class="budget-track"><div class="budget-fill" id="dialog-budget-fill"></div></div>
-        <span class="budget-updated" id="dialog-budget-updated"></span>
-      </div>
-      <div class="requirements">
-        <h3>Requisitos</h3>
-        <ul id="dialog-requirements"></ul>
-      </div>
-      <div class="requirements">
-        <h3>Brief</h3>
-        <p id="dialog-brief" style="color:var(--muted)"></p>
-      </div>
-      <div style="margin-top:16px"><button class="btn primary" id="dialog-submit-clip">Enviar un clip a esta campaña</button></div>
-    </div>
-  </dialog>
 
   <!-- Enviar un clip -->
   <dialog id="submit-dialog" aria-labelledby="submit-title">
@@ -363,6 +336,7 @@
             <div class="field"><label for="cf-deadline">Fecha límite</label><input id="cf-deadline" type="date" /></div>
           </div>
           <div class="field"><label for="cf-payout">Texto de pago manual (si no usas tarifa fuente)</label><input id="cf-payout" placeholder="2 US$ por cada 1.000 vistas…" /></div>
+          <div class="field"><label for="cf-image-url">Imagen de la campaña (URL o ruta local, ej. /img/campaigns/artista.jpg)</label><input id="cf-image-url" placeholder="https://… o /img/campaigns/…" /></div>
           <div class="field"><label for="cf-source-per1k">Pago de la fuente (US$ por 1.000 vistas) — solo tú lo ves</label><input id="cf-source-per1k" type="number" min="0" step="0.01" value="0" /></div>
           <div class="field-row">
             <div class="field"><label for="cf-source-min">Mín. fuente (US$/clip)</label><input id="cf-source-min" type="number" min="0" step="0.01" value="0" /></div>

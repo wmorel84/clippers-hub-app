@@ -8,7 +8,7 @@ const router = express.Router();
 const PUBLIC_FIELDS = `
   id, title, artist, platform, category, payout_text,
   budget_total, budget_remaining, deadline, requirements, brief,
-  is_example, status, created_at, updated_at
+  is_example, status, created_at, updated_at, image_url
 `;
 
 // Campos solo para el admin (la tarifa fuente NUNCA sale en la API pública).
@@ -96,6 +96,7 @@ function sanitizeCampaign(b) {
     deadline: String(b.deadline || '').trim(),
     requirements: String(b.requirements || '').trim(),
     brief: String(b.brief || '').trim(),
+    image_url: String(b.image_url || '').trim().slice(0, 600),
     is_example: b.is_example ? 1 : 0,
     status: b.status === 'inactive' ? 'inactive' : 'active',
     source_per_1k: Math.max(0, Number(b.source_per_1k) || 0),
@@ -111,12 +112,12 @@ function insertCampaign(c) {
       INSERT INTO campaigns
         (title, artist, platform, category, payout_text, budget_total, budget_remaining,
          deadline, requirements, brief, is_example, status,
-         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
     c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
-    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement
+    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement, c.image_url
   ).lastInsertRowid;
 }
 
@@ -127,12 +128,13 @@ function updateCampaign(id, c) {
         budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
         brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
         source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
-        source_min_engagement = ?
+        source_min_engagement = ?, image_url = ?
       WHERE id = ?
     `).run(
     c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
     c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement,
+    c.image_url,
     id
   );
 }
