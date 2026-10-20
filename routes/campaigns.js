@@ -147,7 +147,9 @@ router.get('/admin/all', requireAdmin, (req, res) => {
 });
 
 // GET /api/campaigns — público: solo campañas activas
+// CORS abierto: la landing pública lee esta lista en vivo desde otro dominio.
 router.get('/', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
   const rows = db
     .prepare(`SELECT ${COMPUTE_FIELDS} FROM campaigns WHERE status = 'active' ORDER BY is_example ASC, id ASC`)
     .all();
