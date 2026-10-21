@@ -124,6 +124,15 @@
         document.getElementById('pub-count').textContent = n;
       })
       .catch(function () { document.getElementById('pub-count').textContent = '—'; });
+    // Si el visitante llegó queriendo enviar un clip (/?submit=<id> desde el
+    // brief), el acceso conserva ese destino para abrir el envío tras entrar.
+    (function () {
+      var s = new URLSearchParams(window.location.search).get('submit');
+      if (!s) return;
+      document.querySelectorAll('a[href="/acceso"]').forEach(function (a) {
+        a.href = '/acceso?submit=' + encodeURIComponent(s);
+      });
+    })();
   </script>
 </body>
 </html>

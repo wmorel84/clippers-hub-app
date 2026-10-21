@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
+  <title>Accede a tu cuenta — Clippers Pro</title>
+  <meta name="description" content="Inicia sesión o crea tu cuenta de Clippers Pro para ver las campañas de clipping y ganar dinero por tus vistas." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .acc-layout { display: grid; grid-template-columns: 45% 55%; min-height: 100vh; }
+    .acc-left {
+      position: relative; overflow: hidden; padding: 34px 40px;
+      display: flex; flex-direction: column;
+      background:
+        radial-gradient(720px 480px at 85% 110%, rgba(45, 212, 191, .28), transparent 60%),
+        radial-gradient(560px 420px at 10% -10%, rgba(20, 184, 166, .22), transparent 60%),
+        linear-gradient(160deg, #06231f 0%, #04100f 70%);
+      border-right: 1px solid var(--line);
+    }
+    .acc-brand { display: flex; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); }
+    .acc-brand strong { display: block; font-size: 1.05rem; font-family: "Archivo", sans-serif; }
+    .acc-brand span { font-size: .78rem; color: var(--muted); }
+    .acc-left-bottom { margin-top: auto; }
+    .acc-left h1 { font-size: clamp(2.1rem, 4.2vw, 3.4rem); line-height: 1.02; margin-bottom: 14px; }
+    .acc-left h1 em { color: var(--coral); font-style: italic; }
+    .acc-left p { color: var(--muted); max-width: 440px; font-size: 1.02rem; }
+    .acc-count { display: inline-flex; gap: 8px; align-items: center; margin-top: 18px; background: rgba(45,212,191,.10); border: 1px solid rgba(45,212,191,.35); color: var(--ink); border-radius: 99px; padding: 8px 14px; font-size: .88rem; font-weight: 600; }
+    .acc-count strong { color: var(--accent); font-family: "Archivo", sans-serif; }
+    .acc-right { display: flex; align-items: center; justify-content: center; padding: 34px 22px; }
+    .acc-box { width: min(420px, 100%); }
+    .acc-box h2 { font-size: 1.9rem; margin-bottom: 4px; }
+    .acc-box .sub { color: var(--muted); margin: 0 0 20px; }
+    .acc-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+    .acc-tabs button { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 10px; font-weight: 700; }
+    .acc-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    .acc-field { margin-bottom: 14px; }
+    .acc-field label { display: block; font-size: .82rem; font-weight: 700; margin-bottom: 6px; }
+    .acc-field input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px; background: var(--surface); color: var(--ink); }
+    .acc-submit { width: 100%; font-size: 1rem; padding: 13px; margin-top: 4px; }
+    .acc-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 16px; color: var(--muted); font-size: .85rem; }
+    .acc-divider::before, .acc-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    #google-btn { display: flex; justify-content: center; min-height: 44px; }
+    .acc-switch { text-align: center; color: var(--muted); font-size: .92rem; margin-top: 22px; }
+    .acc-switch button { background: none; border: 0; color: var(--accent); font-weight: 700; padding: 0; }
+    .acc-back { display: inline-block; margin-top: 26px; color: var(--muted); text-decoration: none; font-size: .9rem; }
+    .acc-back:hover { color: var(--accent); }
+    @media (max-width: 860px) {
+      .acc-layout { grid-template-columns: 1fr; }
+      .acc-left { padding: 22px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .acc-left-bottom { margin-top: 26px; }
+      .acc-left h1 { font-size: 1.9rem; }
+      .acc-right { padding: 26px 18px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="acc-layout">
+    <!-- Izquierda: la marca, como en la landing -->
+    <aside class="acc-left">
+      <a class="acc-brand" href="/">
+        <span class="sb-dot">C</span>
+        <span><strong>Clippers Pro</strong><span>Campañas para clippers</span></span>
+      </a>
+      <div class="acc-left-bottom">
+        <h1>Gana dinero por tus <em>vistas</em>.</h1>
+        <p>Campañas de clipping de música latina: elige una campaña, crea tu clip y cobra por cada 1.000 vistas verificadas en TikTok, Instagram, YouTube Shorts y X.</p>
+        <span class="acc-count"><strong id="acc-count">—</strong> campañas activas ahora mismo</span>
+      </div>
+    </aside>
+
+    <!-- Derecha: las opciones para entrar a la app -->
+    <main class="acc-right">
+      <div class="acc-box">
+        <h2 id="acc-title">Bienvenido de nuevo</h2>
+        <p class="sub" id="acc-sub">Entra a tu cuenta para seguir creando clips.</p>
+
+        <div class="acc-tabs" role="tablist">
+          <button type="button" id="tab-login" class="active">Iniciar sesión</button>
+          <button type="button" id="tab-register">Crear cuenta</button>
+        </div>
+
+        <form id="acc-form">
+          <div class="acc-field" id="acc-name-field" hidden>
+            <label for="acc-name">Nombre</label>
+            <input id="acc-name" type="text" autocomplete="name" />
+          </div>
+          <div class="acc-field">
+            <label for="acc-email">Correo electrónico</label>
+            <input id="acc-email" type="email" autocomplete="email" required placeholder="tu@correo.com" />
+          </div>
+          <div class="acc-field">
+            <label for="acc-password">Contraseña</label>
+            <input id="acc-password" type="password" autocomplete="current-password" required placeholder="Tu contraseña" />
+          </div>
+          <p class="form-error" id="acc-error"></p>
+          <button class="btn primary acc-submit" type="submit" id="acc-submit">Entrar con correo</button>
+        </form>
+
+        <div class="acc-divider">o continúa con</div>
+        <div id="google-btn"></div>
+        <p class="form-error" id="google-error"></p>
+
+        <p class="acc-switch" id="acc-switch-login" hidden>¿Ya tienes cuenta? <button type="button" data-switch="login">Inicia sesión</button></p>
+        <p class="acc-switch" id="acc-switch-register">¿Nuevo en Clippers Pro? <button type="button" data-switch="register">Crea una cuenta</button></p>
+
+        <a class="acc-back" href="/">← Volver a la página principal</a>
+      </div>
+    </main>
+  </div>
+
+  <script src="/acceso.js"></script>
+  <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleAcceso()" onerror="document.getElementById('google-btn').style.display='none'"></script>
+</body>
+</html>

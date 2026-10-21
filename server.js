@@ -63,8 +63,8 @@ app.get(['/', '/index.html'], (req, res) => {
   sendPublic(res, isLoggedIn(req) ? 'index.html' : 'inicio.html');
 });
 
-// Entrada directa a la app: al llegar por /acceso, app.js abre el acceso.
-app.get('/acceso', (req, res) => sendPublic(res, 'index.html'));
+// Entrada directa a la app: la página de acceso partida (marca + login).
+app.get('/acceso', (req, res) => sendPublic(res, 'acceso.html'));
 
 // Página propia del brief de cada campaña: /campana/<id>
 // (antes el brief se abría en una ventana emergente; Wilson pidió página con su enlace)
