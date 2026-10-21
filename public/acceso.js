@@ -8,7 +8,12 @@
   var mode = params.get('modo') === 'registro' ? 'register' : 'login';
 
   function destination() {
-    return submitId ? '/?submit=' + submitId : '/';
+    if (submitId) return '/?submit=' + submitId;
+    // Si la puerta se mostró sobre la URL de un brief (/campana/<id>), tras
+    // entrar se vuelve a ese brief.
+    var m = window.location.pathname.match(/^\/campana\/(\d+)$/);
+    if (m) return '/campana/' + m[1];
+    return '/';
   }
 
   async function api(path, opts) {

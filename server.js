@@ -52,24 +52,28 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/admin', adminRoutes);
 
-// ---------- Puerta de acceso (pedido de Wilson, 20 oct 2026) ----------
-// Sin sesión, el visitante ve la página pública tipo landing (sin campañas
-// reales, por confidencialidad de artistas y productos). El panel completo
-// y el brief de cada campaña solo se sirven con sesión iniciada.
+// ---------- Puerta de la app (decisión de Wilson, 21 oct 2026) ----------
+// Sin sesión, lo primero que se ve es la pantalla de acceso partida
+// (acceso.html): «la puerta será la pantalla de acceso». La página pública
+// tipo landing ya no se usa como puerta. El panel completo y el brief de
+// cada campaña solo se sirven con sesión iniciada.
 const isLoggedIn = (req) => !!(req.session && req.session.userId);
 const sendPublic = (res, file) => res.sendFile(path.join(__dirname, 'public', file));
 
 app.get(['/', '/index.html'], (req, res) => {
-  sendPublic(res, isLoggedIn(req) ? 'index.html' : 'inicio.html');
+  sendPublic(res, isLoggedIn(req) ? 'index.html' : 'acceso.html');
 });
 
 // Entrada directa a la app: la página de acceso partida (marca + login).
 app.get('/acceso', (req, res) => sendPublic(res, 'acceso.html'));
 
+// La antigua puerta (inicio.html) ya no se muestra a nadie.
+app.get('/inicio.html', (req, res) => sendPublic(res, 'acceso.html'));
+
 // Página propia del brief de cada campaña: /campana/<id>
 // (antes el brief se abría en una ventana emergente; Wilson pidió página con su enlace)
 app.get('/campana/:id', (req, res) => {
-  if (!isLoggedIn(req)) return sendPublic(res, 'inicio.html');
+  if (!isLoggedIn(req)) return sendPublic(res, 'acceso.html');
   sendPublic(res, 'brief.html');
 });
 
