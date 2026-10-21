@@ -983,5 +983,7 @@
   checkSession().then(function () {
     // Sin sesión: se pide iniciar sesión primero; al entrar, setUser abre el envío.
     if (state.pendingSubmit && !state.user) openAuth();
+    // Entrada por /acceso (desde la página pública): abrir el acceso directo.
+    else if (window.location.pathname === '/acceso' && !state.user) openAuth();
   });
 })();

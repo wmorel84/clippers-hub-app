@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
+  <title>Clippers Pro — Campañas de clipping: gana dinero por tus vistas</title>
+  <meta name="description" content="Campañas de clipping para música latina: crea clips cortos en TikTok, Instagram, YouTube Shorts y X, y gana dinero por cada 1.000 vistas verificadas." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .pub-wrap { max-width: 1080px; margin: 0 auto; padding: 20px 18px 70px; }
+    .pub-top { display: flex; align-items: center; gap: 12px; padding: 6px 0 26px; }
+    .pub-top .brand { display: flex; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); margin-right: auto; }
+    .pub-top .brand strong { display: block; font-size: 1.02rem; font-family: "Archivo", sans-serif; }
+    .pub-top .brand span { font-size: .78rem; color: var(--muted); }
+    .pub-hero { text-align: left; padding: 26px 0 8px; }
+    .pub-hero h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); line-height: 1.02; margin-bottom: 14px; }
+    .pub-hero h1 em { color: var(--coral); font-style: italic; }
+    .pub-hero p { color: var(--muted); max-width: 620px; font-size: 1.06rem; }
+    .pub-cta { display: flex; gap: 12px; flex-wrap: wrap; margin: 22px 0 8px; }
+    .pub-cta .btn { font-size: 1rem; padding: 13px 24px; }
+    .pub-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 30px 0; }
+    .pub-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+    .pub-stat strong { display: block; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 2rem; color: var(--accent); }
+    .pub-stat span { color: var(--muted); font-size: .9rem; }
+    .pub-h2 { font-size: clamp(1.5rem, 3.4vw, 2.1rem); margin: 38px 0 6px; }
+    .pub-sub { color: var(--muted); max-width: 640px; }
+    .pub-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 18px; }
+    .pub-step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+    .pub-step .n { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; color: var(--accent); }
+    .pub-step h3 { margin: 8px 0 6px; font-size: 1.12rem; }
+    .pub-step p { color: var(--muted); margin: 0; font-size: .94rem; }
+    .pub-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; }
+    .pub-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+    .pub-card img { width: 100%; height: 168px; object-fit: cover; display: block; }
+    .pub-card .in { padding: 16px 18px 18px; }
+    .pub-card h3 { margin: 0 0 4px; font-size: 1.15rem; }
+    .pub-card .a { color: var(--muted); font-size: .88rem; margin: 0 0 10px; }
+    .pub-card .p { font-weight: 700; margin: 0; }
+    .pub-note { font-size: .75rem; color: var(--muted); margin-top: 12px; }
+    .pub-final { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 30px; text-align: center; margin-top: 44px; }
+    .pub-final h2 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); margin-bottom: 8px; }
+    .pub-final p { color: var(--muted); max-width: 520px; margin: 0 auto 18px; }
+    .pub-foot { color: var(--muted); font-size: .82rem; text-align: center; margin-top: 34px; }
+    .pub-foot a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="pub-wrap">
+    <div class="pub-top">
+      <a class="brand" href="/">
+        <span class="sb-dot">C</span>
+        <span><strong>Clippers Pro</strong><span>Campañas para clippers</span></span>
+      </a>
+      <a class="btn small" href="/acceso">Iniciar sesión</a>
+      <a class="btn small primary" href="/acceso">Crear cuenta</a>
+    </div>
+
+    <section class="pub-hero">
+      <h1>Campañas de clipping: gana dinero por tus <em>vistas</em>.</h1>
+      <p>Elige una campaña de música latina, crea tu clip para TikTok, Instagram, YouTube Shorts o X, y cobra por cada 1.000 vistas verificadas. Sin inversión: solo tu contenido.</p>
+      <div class="pub-cta">
+        <a class="btn primary" href="/acceso">Crear cuenta</a>
+        <a class="btn" href="#como-funciona">Cómo funciona</a>
+      </div>
+    </section>
+
+    <section class="pub-stats" aria-label="Cifras">
+      <div class="pub-stat"><strong id="pub-count">—</strong><span>campañas activas de música latina ahora mismo</span></div>
+      <div class="pub-stat"><strong>US$2–5</strong><span>pago típico por cada 1.000 vistas (el CPM de cada campaña)</span></div>
+      <div class="pub-stat"><strong>4</strong><span>plataformas: TikTok, Instagram, YouTube Shorts y X</span></div>
+    </section>
+
+    <section id="como-funciona">
+      <h2 class="pub-h2">Cómo funciona</h2>
+      <p class="pub-sub">Tres pasos y empiezas a generar con los videos que ya sabes hacer.</p>
+      <div class="pub-steps">
+        <div class="pub-step"><span class="n">1</span><h3>Crea tu cuenta</h3><p>Regístrate en un minuto y vincula tus cuentas de TikTok o Instagram.</p></div>
+        <div class="pub-step"><span class="n">2</span><h3>Elige una campaña</h3><p>Lee el brief completo de cada campaña: el pago por vistas, los requisitos y el estilo que funciona.</p></div>
+        <div class="pub-step"><span class="n">3</span><h3>Envía tu clip y gana</h3><p>Sube tu clip desde la app; tus ganancias se acreditan por vistas verificadas.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="pub-h2">Así se ven las campañas por dentro</h2>
+      <p class="pub-sub">Las campañas reales se ven solo con tu cuenta, para cuidar a los artistas y las marcas. Esto es un ejemplo del formato:</p>
+      <div class="pub-cards">
+        <article class="pub-card">
+          <img src="/img/ejemplos/ejemplo-diva-estadio.webp" alt="">
+          <div class="in"><h3>Gira mundial</h3><p class="a">Beyoncé</p><p class="p">Pago por vistas: US$5 por cada 1.000 vistas</p></div>
+        </article>
+        <article class="pub-card">
+          <img src="/img/ejemplos/ejemplo-funk-en-vivo.webp" alt="">
+          <div class="in"><h3>Conciertos en vivo</h3><p class="a">Bruno Mars</p><p class="p">Pago por vistas: US$3 por cada 1.000 vistas</p></div>
+        </article>
+        <article class="pub-card">
+          <img src="/img/ejemplos/ejemplo-rapero-arena.webp" alt="">
+          <div class="in"><h3>Nuevo sencillo</h3><p class="a">Drake</p><p class="p">Pago por vistas: US$4 por cada 1.000 vistas</p></div>
+        </article>
+      </div>
+      <p class="pub-note">Campañas de ejemplo con fines ilustrativos, incluidos los precios por vistas; no corresponden a campañas reales.</p>
+    </section>
+
+    <section class="pub-final">
+      <h2>¿Listo para ganar dinero haciendo clips?</h2>
+      <p>Crea tu cuenta y entra a ver las campañas activas de hoy, con su brief completo y su pago por vistas.</p>
+      <a class="btn primary" href="/acceso" style="font-size:1rem;padding:13px 24px">Crear cuenta</a>
+    </section>
+
+    <p class="pub-foot">Clippers Pro · Campañas de clipping para creadores de clips cortos · <a href="/privacidad">Política de privacidad</a></p>
+  </main>
+  <script>
+    // El único dato en vivo de esta página pública: cuántas campañas hay
+    // activas. La lista real solo se entrega con sesión iniciada.
+    fetch('/api/campaigns')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var n = typeof d.count === 'number'
+          ? d.count
+          : (d.campaigns || []).filter(function (c) { return !c.is_example; }).length;
+        document.getElementById('pub-count').textContent = n;
+      })
+      .catch(function () { document.getElementById('pub-count').textContent = '—'; });
+  </script>
+</body>
+</html>

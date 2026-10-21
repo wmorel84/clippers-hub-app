@@ -214,18 +214,26 @@ router.get('/admin/all', requireAdmin, (req, res) => {
   res.json({ campaigns: rows.map(toAdminCampaign) });
 });
 
-// GET /api/campaigns — público: solo campañas activas
-// CORS abierto: la landing pública lee esta lista en vivo desde otro dominio.
+// GET /api/campaigns — con sesión: la lista real. Sin sesión: SOLO el conteo
+// (la landing y la página pública lo leen en vivo; las campañas reales son
+// confidenciales y no se entregan a visitantes sin cuenta).
+// CORS abierto: la landing pública lee el conteo desde otro dominio.
 router.get('/', (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   const rows = db
     .prepare(`SELECT ${COMPUTE_FIELDS} FROM campaigns WHERE status = 'active' ORDER BY is_example ASC, id ASC`)
     .all();
-  res.json({ campaigns: rows.map(toCampaign) });
+  const campaigns = rows.map(toCampaign);
+  const count = campaigns.filter((c) => !c.is_example).length;
+  if (!req.session || !req.session.userId) return res.json({ campaigns: [], count });
+  res.json({ campaigns, count });
 });
 
-// GET /api/campaigns/:id — público si está activa; admin puede ver cualquiera
+// GET /api/campaigns/:id — solo con sesión (confidencialidad); admin puede ver cualquiera
 router.get('/:id', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(404).json({ error: 'Campaña no encontrada.' });
+  }
   const row = db.prepare(`SELECT ${COMPUTE_FIELDS} FROM campaigns WHERE id = ?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Campaña no encontrada.' });
   if (row.status !== 'active' && req.session?.role !== 'admin') {
