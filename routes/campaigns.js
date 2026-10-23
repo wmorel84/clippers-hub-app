@@ -7,7 +7,7 @@ const router = express.Router();
 
 const PUBLIC_FIELDS = `
   id, title, artist, platform, category, payout_text,
-  budget_total, budget_remaining, deadline, requirements, brief,
+  budget_total, budget_remaining, budget_reserved, deadline, requirements, brief,
   is_example, status, created_at, updated_at, image_url
 `;
 
@@ -59,6 +59,7 @@ function toCampaign(row) {
   out.payout_text = clipperPayoutText(row);
   out.budget_total = round2(row.budget_total);
   out.budget_remaining = round2(row.budget_remaining);
+  out.budget_reserved = round2(row.budget_reserved);
   // La tarifa fuente y el margen NUNCA salen en la respuesta pública.
   delete out.source_per_1k;
   delete out.source_min_clip;
@@ -93,6 +94,7 @@ function sanitizeCampaign(b) {
     payout_text: String(b.payout_text || '').trim(),
     budget_total: Number(b.budget_total) || 0,
     budget_remaining: (b.budget_remaining === undefined || b.budget_remaining === '') ? (Number(b.budget_total) || 0) : (Number(b.budget_remaining) || 0),
+    budget_reserved: Math.max(0, Number(b.budget_reserved) || 0),
     deadline: String(b.deadline || '').trim(),
     requirements: String(b.requirements || '').trim(),
     brief: String(b.brief || '').trim(),
@@ -110,12 +112,12 @@ function sanitizeCampaign(b) {
 function insertCampaign(c) {
   return db.prepare(`
       INSERT INTO campaigns
-        (title, artist, platform, category, payout_text, budget_total, budget_remaining,
+        (title, artist, platform, category, payout_text, budget_total, budget_remaining, budget_reserved,
          deadline, requirements, brief, is_example, status,
          source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
+    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining, c.budget_reserved,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
     c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement, c.image_url
   ).lastInsertRowid;
@@ -125,13 +127,13 @@ function updateCampaign(id, c) {
   db.prepare(`
       UPDATE campaigns SET
         title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
-        budget_total = ?, budget_remaining = ?, deadline = ?, requirements = ?,
+        budget_total = ?, budget_remaining = ?, budget_reserved = ?, deadline = ?, requirements = ?,
         brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
         source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
         source_min_engagement = ?, image_url = CASE WHEN ? <> '' THEN ? ELSE image_url END
       WHERE id = ?
     `).run(
-    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining,
+    c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining, c.budget_reserved,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
     c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement,
     c.image_url, c.image_url,

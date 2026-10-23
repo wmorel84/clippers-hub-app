@@ -86,17 +86,32 @@
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
-  function budgetPct(c) {
-    if (!c.budget_total || c.budget_total <= 0) return null;
-    return Math.max(0, Math.min(100, Math.round((c.budget_remaining / c.budget_total) * 100)));
+  // Barra de presupuesto como la nueva de la fuente: Disponible (verde) y
+  // Reservado (naranja: clips que ya cumplen el mínimo pero aún no se
+  // aprueban), con segmentos proporcionales al presupuesto total.
+  function budgetParts(c) {
+    var t = Number(c.budget_total) || 0;
+    if (t <= 0) return null;
+    var avail = Math.max(0, Number(c.budget_remaining) || 0);
+    var res = Math.max(0, Math.min(Number(c.budget_reserved) || 0, Math.max(0, t - avail)));
+    return {
+      availPct: Math.max(0, Math.min(100, Math.round((avail / t) * 100))),
+      resPct: Math.max(0, Math.min(100, Math.round((res / t) * 100))),
+    };
   }
 
   function budgetHtml(c) {
-    var pct = budgetPct(c);
-    if (pct === null) return '';
+    var p = budgetParts(c);
+    if (!p) return '';
     return '<div class="budget">' +
-      '<div class="budget-label"><span>Presupuesto restante</span><span>US$ ' + esc(c.budget_remaining) + ' de US$ ' + esc(c.budget_total) + '</span></div>' +
-      '<div class="budget-track"><div class="budget-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="budget-label">' +
+      '<span><i class="dot dot-avail"></i>Disponible <strong>US$ ' + esc(c.budget_remaining) + '</strong></span>' +
+      '<span><i class="dot dot-res"></i>Reservado <strong>US$ ' + esc(c.budget_reserved || 0) + '</strong></span>' +
+      '<span class="muted">de US$ ' + esc(c.budget_total) + '</span></div>' +
+      '<div class="budget-track">' +
+      '<div class="budget-fill fill-avail" style="width:' + p.availPct + '%"></div>' +
+      '<div class="budget-fill fill-res" style="width:' + p.resPct + '%"></div>' +
+      '</div>' +
       '<span class="budget-updated">Actualizado: ' + esc(fmtDateTime(c.updated_at)) + '</span></div>';
   }
 
@@ -627,6 +642,7 @@
     $('cf-engagement').value = c && c.source_min_engagement ? c.source_min_engagement : 0;
     $('cf-budget-total').value = c ? c.budget_total : 0;
     $('cf-budget-remaining').value = c ? c.budget_remaining : 0;
+    $('cf-budget-reserved').value = c ? (c.budget_reserved || 0) : 0;
     $('cf-requirements').value = c ? c.requirements : '';
     $('cf-brief').value = c ? c.brief : '';
     $('cf-image-url').value = c ? (c.image_url || '') : '';
@@ -680,6 +696,7 @@
       source_min_engagement: Number($('cf-engagement').value) || 0,
       budget_total: Number($('cf-budget-total').value) || 0,
       budget_remaining: Number($('cf-budget-remaining').value) || 0,
+      budget_reserved: Number($('cf-budget-reserved').value) || 0,
       requirements: $('cf-requirements').value.trim(),
       brief: $('cf-brief').value.trim(),
       image_url: $('cf-image-url').value.trim(),

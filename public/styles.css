@@ -142,8 +142,14 @@ h1, h2, h3 { font-family: "Archivo", sans-serif; font-weight: 800; letter-spacin
 .card .pay { font-weight: 700; }
 .budget { margin-top: 4px; }
 .budget-label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
-.budget-track { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
-.budget-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #14b8a6); border-radius: 99px; transition: width .4s; }
+.budget-track { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: flex; }
+.budget-fill { height: 100%; transition: width .4s; }
+.budget-fill.fill-avail { background: linear-gradient(90deg, var(--accent), #14b8a6); }
+.budget-fill.fill-res { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.dot-avail { background: var(--accent); }
+.dot-res { background: #f59e0b; }
+.budget-label strong { color: var(--ink); }
 .budget-updated { font-size: .72rem; color: var(--muted); margin-top: 4px; display: block; }
 .card-actions { display: flex; gap: 10px; margin-top: auto; padding-top: 8px; }
 .btn {

@@ -42,8 +42,15 @@
           <div class="detail-box"><span>Vigencia</span><strong id="brief-date"></strong></div>
         </div>
         <div class="budget" id="brief-budget-wrap">
-          <div class="budget-label"><span>Presupuesto restante</span><span id="brief-budget-numbers"></span></div>
-          <div class="budget-track"><div class="budget-fill" id="brief-budget-fill"></div></div>
+          <div class="budget-label">
+            <span><i class="dot dot-avail"></i>Disponible <strong id="brief-budget-avail"></strong></span>
+            <span><i class="dot dot-res"></i>Reservado <strong id="brief-budget-res"></strong></span>
+            <span class="muted" id="brief-budget-total"></span>
+          </div>
+          <div class="budget-track">
+            <div class="budget-fill fill-avail" id="brief-budget-fill"></div>
+            <div class="budget-fill fill-res" id="brief-budget-fill-res"></div>
+          </div>
           <span class="budget-updated" id="brief-budget-updated"></span>
         </div>
         <div class="requirements">

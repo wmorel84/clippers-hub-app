@@ -247,8 +247,19 @@ function migrateCampaignEngagement() {
     db.exec('ALTER TABLE campaigns ADD COLUMN source_min_engagement REAL NOT NULL DEFAULT 0');
   }
 }
+
+// Barra de presupuesto nueva (como la de Lulosa, oct 2026): además del total
+// y el disponible (budget_remaining), cada campaña guarda lo RESERVADO: el
+// dinero apartado en clips que ya cumplen el mínimo pero aún no se aprueban.
+function migrateCampaignBudgetReserved() {
+  const cols = db.prepare('PRAGMA table_info(campaigns)').all().map((c) => c.name);
+  if (!cols.includes('budget_reserved')) {
+    db.exec('ALTER TABLE campaigns ADD COLUMN budget_reserved REAL NOT NULL DEFAULT 0');
+  }
+}
 migrateClipEarnings();
 migrateCampaignEngagement();
+migrateCampaignBudgetReserved();
 seedCampaigns();
 
 // Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin

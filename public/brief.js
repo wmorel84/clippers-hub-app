@@ -19,11 +19,15 @@
     if (isNaN(d)) return iso;
     return d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
   }
-  function budgetPct(c) {
+  function budgetParts(c) {
     var t = Number(c.budget_total) || 0;
-    var r = Number(c.budget_remaining) || 0;
     if (t <= 0) return null;
-    return Math.max(0, Math.min(100, Math.round((r / t) * 100)));
+    var avail = Math.max(0, Number(c.budget_remaining) || 0);
+    var res = Math.max(0, Math.min(Number(c.budget_reserved) || 0, Math.max(0, t - avail)));
+    return {
+      availPct: Math.max(0, Math.min(100, Math.round((avail / t) * 100))),
+      resPct: Math.max(0, Math.min(100, Math.round((res / t) * 100))),
+    };
   }
 
   var m = window.location.pathname.match(/\/campana\/(\d+)/);
@@ -57,13 +61,15 @@
       $('brief-artist').textContent = c.artist || '';
       $('brief-pay').textContent = c.payout_text || '—';
       $('brief-date').textContent = c.deadline ? 'Termina ' + fmtDate(c.deadline) : 'Sin fecha límite';
-      var pct = budgetPct(c);
-      if (pct === null) {
+      var bp = budgetParts(c);
+      if (!bp) {
         $('brief-budget-wrap').hidden = true;
       } else {
-        $('brief-budget-numbers').textContent =
-          'US$ ' + c.budget_remaining + ' de US$ ' + c.budget_total + ' · ' + pct + '% disponible';
-        $('brief-budget-fill').style.width = pct + '%';
+        $('brief-budget-avail').textContent = 'US$ ' + c.budget_remaining;
+        $('brief-budget-res').textContent = 'US$ ' + (c.budget_reserved || 0);
+        $('brief-budget-total').textContent = 'de US$ ' + c.budget_total;
+        $('brief-budget-fill').style.width = bp.availPct + '%';
+        $('brief-budget-fill-res').style.width = bp.resPct + '%';
         $('brief-budget-updated').textContent = 'Actualizado: ' + fmtDateTime(c.updated_at);
       }
       var reqs = (c.requirements || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
