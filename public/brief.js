@@ -24,10 +24,15 @@
     if (t <= 0) return null;
     var avail = Math.max(0, Number(c.budget_remaining) || 0);
     var res = Math.max(0, Math.min(Number(c.budget_reserved) || 0, Math.max(0, t - avail)));
-    return {
-      availPct: Math.max(0, Math.min(100, Math.round((avail / t) * 100))),
-      resPct: Math.max(0, Math.min(100, Math.round((res / t) * 100))),
-    };
+    var availPct = Math.max(0, Math.min(100, Math.round((avail / t) * 100)));
+    var resPct = Math.max(0, Math.min(100, Math.round((res / t) * 100)));
+    // Mínimo visible (pedido de Wilson): si hay dinero reservado, su segmento
+    // nunca baja del 3% para que se note en la barra aunque sea un monto chico.
+    if (res > 0 && resPct < 3) {
+      resPct = 3;
+      availPct = Math.min(availPct, 100 - resPct);
+    }
+    return { availPct: availPct, resPct: resPct };
   }
 
   var m = window.location.pathname.match(/\/campana\/(\d+)/);
