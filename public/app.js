@@ -758,7 +758,7 @@
       tbodyA.innerHTML = ap.clips.map(function (c) {
         var creditCell;
         if (c.suggested_cents > 0) {
-          creditCell = '<button class="btn small accent" data-credit="' + c.id + '" type="button">Acreditar ' + fmtUSD(c.suggested_cents) + '</button>';
+          creditCell = '<button class="btn small accent" data-credit="' + c.id + '" data-amount="' + fmtUSD(c.suggested_cents) + '" type="button">Acreditar ' + fmtUSD(c.suggested_cents) + '</button>';
         } else {
           creditCell = '<span class="muted">' + esc(c.suggest_text) + '</span>';
         }
@@ -771,6 +771,37 @@
     } catch (e) { tbodyA.innerHTML = '<tr><td colspan="6">No se pudo cargar.</td></tr>'; }
   }
 
+  /* Diálogo propio de confirmación / dato (sustituye a confirm() y prompt()
+     del navegador, cuyas ventanas nativas ningún sistema automático puede
+     aceptar; con él, las corridas de actualización se completan sin clics
+     manuales). Devuelve una promesa: {ok:true, value} o {ok:false}. */
+  var flowResolve = null;
+  function openFlowDialog(opts) {
+    return new Promise(function (resolve) {
+      flowResolve = resolve;
+      $('flow-title').textContent = opts.title || 'Confirmar';
+      $('flow-text').textContent = opts.text || '';
+      $('flow-text').style.display = opts.text ? '' : 'none';
+      $('flow-field').hidden = !opts.inputLabel;
+      if (opts.inputLabel) {
+        $('flow-input-label').textContent = opts.inputLabel;
+        $('flow-input').value = opts.inputValue || '';
+      }
+      $('flow-ok').textContent = opts.okText || 'Confirmar';
+      $('flow-dialog').showModal();
+      if (opts.inputLabel) $('flow-input').focus();
+    });
+  }
+  function settleFlow(ok) {
+    var resolve = flowResolve;
+    flowResolve = null;
+    if (resolve) resolve({ ok: ok, value: $('flow-input').value });
+  }
+  $('flow-ok').addEventListener('click', function () { $('flow-dialog').close(); settleFlow(true); });
+  $('flow-cancel').addEventListener('click', function () { $('flow-dialog').close(); settleFlow(false); });
+  $('flow-close').addEventListener('click', function () { $('flow-dialog').close(); settleFlow(false); });
+  $('flow-dialog').addEventListener('close', function () { settleFlow(false); });
+
   document.addEventListener('click', async function (ev) {
     var t = ev.target;
     if (!(t instanceof HTMLElement)) return;
@@ -782,10 +813,17 @@
         loadAdminClips();
       } catch (e) { msg.textContent = e.message; }
     } else if (t.hasAttribute('data-reject')) {
-      var motivo = prompt('Motivo del rechazo (lo verá el clipper):') || '';
+      var clipId = t.getAttribute('data-reject');
+      var resR = await openFlowDialog({
+        title: 'Rechazar clip',
+        text: 'El clip quedará rechazado y el clipper verá el motivo.',
+        inputLabel: 'Motivo del rechazo',
+        okText: 'Rechazar clip',
+      });
+      if (!resR.ok) return;
       msg = $('review-msg'); msg.textContent = '';
       try {
-        await api('/api/clips/admin/' + t.getAttribute('data-reject') + '/reject', { method: 'POST', body: JSON.stringify({ note: motivo }) });
+        await api('/api/clips/admin/' + clipId + '/reject', { method: 'POST', body: JSON.stringify({ note: resR.value || '' }) });
         loadAdminClips();
       } catch (e) { msg.textContent = e.message; }
     } else if (t.hasAttribute('data-saveviews')) {
@@ -801,7 +839,12 @@
     } else if (t.hasAttribute('data-credit')) {
       var cid = t.getAttribute('data-credit');
       msg = $('credit-msg'); msg.textContent = '';
-      if (!confirm('¿Acreditar la ganancia sugerida a la billetera del clipper (retenida 14 días)?')) return;
+      var resC = await openFlowDialog({
+        title: 'Acreditar ganancia',
+        text: 'Se acreditarán ' + (t.getAttribute('data-amount') || 'la ganancia sugerida') + ' a la billetera del clipper (retenida 14 días).',
+        okText: 'Acreditar',
+      });
+      if (!resC.ok) return;
       try {
         var r = await api('/api/clips/admin/' + cid + '/credit', { method: 'POST', body: JSON.stringify({}) });
         msg.textContent = 'Acreditado: ' + fmtUSD(r.cents) + '.';

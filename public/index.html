@@ -370,6 +370,28 @@
     </div>
   </dialog>
 
+  <!-- Diálogo propio para confirmar / pedir un dato (acreditar, rechazar).
+       Sustituye a confirm()/prompt() del navegador, que ningún sistema
+       automático puede aceptar: así las corridas de actualización se
+       completan sin clics manuales. -->
+  <dialog id="flow-dialog" aria-labelledby="flow-title">
+    <div class="dialog-body">
+      <button class="close" id="flow-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <h2 id="flow-title">Confirmar</h2>
+      <p class="muted" id="flow-text"></p>
+      <div class="form-grid">
+        <div class="field" id="flow-field" hidden>
+          <label for="flow-input" id="flow-input-label">Motivo</label>
+          <input id="flow-input" type="text" />
+        </div>
+        <div class="row-actions">
+          <button class="btn" id="flow-cancel" type="button">Cancelar</button>
+          <button class="btn accent" id="flow-ok" type="button">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <script src="/app.js"></script>
   <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()" onerror="document.getElementById('google-btn-wrap').hidden = true"></script>
 </body>
