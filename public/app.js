@@ -56,6 +56,7 @@
     if (page === 'billetera') loadWallet();
     if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); }
     if (page === 'chat') enterChat();
+    if (page === 'cursos') loadCourseHome();
     window.scrollTo(0, 0);
   }
 
@@ -1350,6 +1351,79 @@
       else loadThreads();
     }
   }, 5000);
+
+  /* ---------------- Cursos (academia) ---------------- */
+  var currentLesson = null; // {id, prev, next, done}
+
+  function richText(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function blockHtml(b) {
+    if (b.h) return '<h3>' + richText(b.h) + '</h3>';
+    if (b.p) return '<p>' + richText(b.p) + '</p>';
+    if (b.list) return '<ul>' + b.list.map(function (i) { return '<li>' + richText(i) + '</li>'; }).join('') + '</ul>';
+    if (b.steps) return '<ol>' + b.steps.map(function (i) { return '<li>' + richText(i) + '</li>'; }).join('') + '</ol>';
+    if (b.tip) return '<div class="lesson-tip">💡 ' + richText(b.tip) + '</div>';
+    if (b.warn) return '<div class="lesson-warn">⚠️ ' + richText(b.warn) + '</div>';
+    return '';
+  }
+
+  async function loadCourseHome() {
+    $('course-reader').hidden = true;
+    $('course-home').hidden = false;
+    try {
+      var data = await api('/api/courses');
+      $('course-title').textContent = data.title;
+      $('course-intro').textContent = data.intro;
+      var pct = data.progress.total ? Math.round((data.progress.done / data.progress.total) * 100) : 0;
+      $('course-progress-fill').style.width = pct + '%';
+      $('course-progress-text').textContent = data.progress.done + ' de ' + data.progress.total + ' lecciones completadas (' + pct + '%)';
+      $('course-lessons').innerHTML = data.lessons.map(function (l) {
+        return '<button type="button" class="lesson-item" data-lesson="' + l.id + '">'
+          + '<span class="lesson-num">' + (l.done ? '✓' : l.order) + '</span>'
+          + '<span class="lesson-name">' + esc(l.title) + '</span>'
+          + (l.done ? '<span class="lesson-done-tag">Completada</span>' : '')
+          + '</button>';
+      }).join('');
+      document.querySelectorAll('[data-lesson]').forEach(function (b) {
+        b.addEventListener('click', function () { openLesson(b.getAttribute('data-lesson')); });
+      });
+    } catch (e) { /* sin red o sesión vencida */ }
+  }
+
+  async function openLesson(id) {
+    try {
+      var data = await api('/api/courses/lessons/' + id);
+      currentLesson = { id: data.lesson.id, prev: data.prev, next: data.next, done: data.lesson.done };
+      $('course-home').hidden = true;
+      $('course-reader').hidden = false;
+      $('lesson-kicker').textContent = 'Lección ' + data.lesson.order + ' de ' + data.progress.total;
+      $('lesson-title').textContent = data.lesson.title;
+      $('lesson-body').innerHTML = data.lesson.blocks.map(blockHtml).join('');
+      $('lesson-prev').disabled = !data.prev;
+      $('lesson-next').disabled = !data.next;
+      updateLessonDoneBtn();
+      window.scrollTo(0, 0);
+    } catch (e) { alert(e.message); }
+  }
+
+  function updateLessonDoneBtn() {
+    var btn = $('lesson-done');
+    btn.textContent = currentLesson && currentLesson.done ? '✓ Completada (toca para desmarcar)' : 'Marcar como completada';
+  }
+
+  $('course-back').addEventListener('click', loadCourseHome);
+  $('lesson-prev').addEventListener('click', function () { if (currentLesson && currentLesson.prev) openLesson(currentLesson.prev); });
+  $('lesson-next').addEventListener('click', function () { if (currentLesson && currentLesson.next) openLesson(currentLesson.next); });
+  $('lesson-done').addEventListener('click', async function () {
+    if (!currentLesson) return;
+    try {
+      var r = await api('/api/courses/lessons/' + currentLesson.id + '/toggle', { method: 'POST' });
+      currentLesson.done = r.done;
+      updateLessonDoneBtn();
+    } catch (e) { alert(e.message); }
+  });
 
   /* ---------------- Init ---------------- */
   // Enlace desde la página del brief: /?submit=<id de campaña>

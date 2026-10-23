@@ -150,9 +150,30 @@
 
       <!-- CURSOS -->
       <section class="app-page" data-page="cursos" id="page-cursos" hidden>
-        <div class="hero"><h1><em>Cursos.</em></h1></div>
-        <div class="panel-card">
-          <p>Aquí encontrarás los cursos y la academia para mejorar tus clips. Contenido en preparación.</p>
+        <div class="hero"><h1><em>Cursos.</em></h1><p>La academia de Clippers Pro: aprende el oficio paso a paso.</p></div>
+        <div id="course-home">
+          <div class="panel-card course-card">
+            <h2 id="course-title"></h2>
+            <p id="course-intro" class="course-intro"></p>
+            <div class="course-progress">
+              <div class="budget-track"><div class="budget-fill fill-avail" id="course-progress-fill" style="width:0%"></div></div>
+              <span id="course-progress-text" class="course-progress-text"></span>
+            </div>
+            <div class="course-lessons" id="course-lessons"></div>
+          </div>
+        </div>
+        <div id="course-reader" hidden>
+          <button class="btn ghost" id="course-back" type="button">← Volver a las lecciones</button>
+          <div class="panel-card lesson-card">
+            <span class="lesson-kicker" id="lesson-kicker"></span>
+            <h2 id="lesson-title"></h2>
+            <div class="lesson-body" id="lesson-body"></div>
+            <div class="lesson-foot">
+              <button class="btn" id="lesson-prev" type="button">← Anterior</button>
+              <button class="btn accent" id="lesson-done" type="button">Marcar como completada</button>
+              <button class="btn" id="lesson-next" type="button">Siguiente →</button>
+            </div>
+          </div>
         </div>
       </section>
 

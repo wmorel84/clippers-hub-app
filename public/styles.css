@@ -324,3 +324,27 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .thread-item.active { border-color: #2dd4bf; }
 .thread-name { font-weight: 700; }
 .thread-last { color: #8fbdb5; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+/* ---------- Cursos (academia) ---------- */
+.course-card { max-width: 860px; }
+.course-intro { color: #a7f3ea; }
+.course-progress { display: flex; align-items: center; gap: 12px; margin: 14px 0 18px; }
+.course-progress .budget-track { flex: 1; }
+.course-progress-text { color: #8fbdb5; font-size: 13px; white-space: nowrap; }
+.course-lessons { display: flex; flex-direction: column; gap: 8px; }
+.lesson-item { display: flex; align-items: center; gap: 12px; text-align: left; background: #0f2b28; border: 1px solid #16403a; border-radius: 12px; padding: 12px 14px; color: #e6fffb; cursor: pointer; width: 100%; }
+.lesson-item:hover { border-color: #2dd4bf; }
+.lesson-num { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #123b36; color: #2dd4bf; font-weight: 800; flex: none; }
+.lesson-name { font-weight: 600; flex: 1; }
+.lesson-done-tag { color: #2dd4bf; font-size: 12px; font-weight: 700; }
+.lesson-card { max-width: 860px; margin-top: 14px; }
+.lesson-kicker { color: #2dd4bf; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.lesson-body { color: #d9fbf5; line-height: 1.65; font-size: 15.5px; }
+.lesson-body h3 { color: #e6fffb; margin: 22px 0 8px; font-size: 18px; }
+.lesson-body p { margin: 10px 0; }
+.lesson-body ul, .lesson-body ol { margin: 10px 0 10px 20px; }
+.lesson-body li { margin: 6px 0; }
+.lesson-body strong { color: #fff; }
+.lesson-tip { background: #123b36; border-left: 3px solid #2dd4bf; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.lesson-warn { background: #3b2f12; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.lesson-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; flex-wrap: wrap; }

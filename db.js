@@ -257,6 +257,16 @@ function migrateCampaignBudgetReserved() {
     db.exec('ALTER TABLE campaigns ADD COLUMN budget_reserved REAL NOT NULL DEFAULT 0');
   }
 }
+function migrateCourse() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS course_progress (
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      lesson_id TEXT NOT NULL,
+      done_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, lesson_id)
+    );
+  `);
+}
 function migrateChat() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS chat_messages (
@@ -299,6 +309,7 @@ migrateClipEarnings();
 migrateCampaignEngagement();
 migrateCampaignBudgetReserved();
 migrateChat();
+migrateCourse();
 seedCampaigns();
 
 // Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin
