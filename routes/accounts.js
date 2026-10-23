@@ -5,6 +5,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { sendPushToUser } = require('../lib/push');
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ function notify(userId, title, body) {
     title,
     body || ''
   );
+  sendPushToUser(userId, { title, body: body || '' });
 }
 
 function notifyAdmins(title, body) {

@@ -4,7 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#f3f1eb" />
+  <meta name="theme-color" content="#04100f" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Clippers Pro" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="icon" href="data:," />
   <title>Clippers Pro — Campañas para clippers</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,6 +100,7 @@
           <strong>Notificaciones</strong>
           <button class="link-btn" id="notif-read-all" type="button">Marcar leídas</button>
         </div>
+        <button class="push-enable" id="push-enable-btn" type="button" hidden>🔔 Activar avisos en este celular</button>
         <div id="notifications-list"></div>
       </div>
     </header>
@@ -443,6 +450,7 @@
   </dialog>
 
   <script src="/app.js"></script>
+  <script src="/pwa.js"></script>
   <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()" onerror="document.getElementById('google-btn-wrap').hidden = true"></script>
 </body>
 </html>

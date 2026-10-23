@@ -4,6 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:," />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#04100f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Clippers Pro" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <title>Accede a tu cuenta — Clippers Pro</title>
   <meta name="description" content="Inicia sesión o crea tu cuenta de Clippers Pro para ver las campañas de clipping y ganar dinero por tus vistas." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -111,6 +118,7 @@
   </div>
 
   <script src="/acceso.js"></script>
+  <script src="/pwa.js"></script>
   <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleAcceso()" onerror="document.getElementById('google-btn').style.display='none'"></script>
 </body>
 </html>

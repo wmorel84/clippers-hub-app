@@ -3,11 +3,13 @@ const express = require('express');
 const { db } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { creditHeldEarning } = require('./wallet');
+const { sendPushToUser } = require('../lib/push');
 
 const router = express.Router();
 
 function notify(userId, title, body) {
   db.prepare('INSERT INTO notifications (user_id, title, body) VALUES (?, ?, ?)').run(userId, title, body || '');
+  sendPushToUser(userId, { title, body: body || '' });
 }
 
 // Calcula la ganancia sugerida para un clip aprobado, a la tarifa del clipper.

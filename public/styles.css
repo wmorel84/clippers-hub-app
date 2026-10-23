@@ -348,3 +348,5 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .lesson-tip { background: #123b36; border-left: 3px solid #2dd4bf; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
 .lesson-warn { background: #3b2f12; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
 .lesson-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+.push-enable { width: 100%; margin: 8px 0 4px; padding: 10px; border-radius: 10px; border: 1px solid #2dd4bf66; background: #123b36; color: #d9fbf5; font-weight: 700; cursor: pointer; }
+.push-enable:disabled { opacity: .65; cursor: default; }

@@ -6,6 +6,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { sendPushToUser } = require('../lib/push');
 // NOTA: estimateTotal se carga de forma diferida dentro del handler (require
 // circular con routes/clips.js: clips.js también requiere este módulo).
 
@@ -20,6 +21,7 @@ function notify(userId, title, body) {
     title,
     body || ''
   );
+  sendPushToUser(userId, { title, body: body || '' });
 }
 
 // Libera las ganancias retenidas cuya fecha ya llegó.
