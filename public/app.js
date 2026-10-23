@@ -55,6 +55,7 @@
     if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
     if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); }
+    if (page === 'chat') enterChat();
     window.scrollTo(0, 0);
   }
 
@@ -1034,6 +1035,317 @@
   }
   // La librería de Google la llama al cargarse (onload en index.html).
   window.initGoogleLogin = initGoogleLogin;
+
+  /* ---------------- Chat (comunidad + privados) ---------------- */
+  var chatTab = 'room';
+  var chatEmojis = ['👍', '❤️', '🔥', '😂', '🎉'];
+  var roomHash = '';
+  var dmHash = '';
+  var dmClipperId = null; // conversación privada abierta (admin: la elegida; clipper: la suya)
+  var replyTarget = { room: null, dm: null }; // {id, author, body}
+  var openPickerFor = null; // "scope:id" con el selector de emojis abierto
+
+  function chatTime(iso) {
+    var d = new Date(String(iso).replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return '';
+    var today = new Date();
+    var sameDay = d.toDateString() === today.toDateString();
+    var time = d.toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
+    if (sameDay) return time;
+    return d.toLocaleDateString('es', { day: 'numeric', month: 'short' }) + ', ' + time;
+  }
+
+  function linkify(text) {
+    return esc(text).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
+  function reactionsHtml(m, scope) {
+    if (!m.reactions || !m.reactions.length) return '';
+    return '<div class="msg-reactions">' + m.reactions.map(function (r) {
+      return '<button type="button" class="rx-chip' + (r.mine ? ' mine' : '') + '" data-react="' + scope + ':' + m.id + ':' + r.emoji + '">' + r.emoji + ' ' + r.count + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function messageHtml(m, scope) {
+    var isAdminUser = state.user && state.user.role === 'admin';
+    var quote = m.reply_body
+      ? '<button type="button" class="msg-quote" data-goto="' + scope + ':' + (m.reply_to_id || '') + '"><strong>' + esc(m.reply_author) + '</strong> ' + esc(m.reply_body) + '</button>'
+      : '';
+    var picker = openPickerFor === scope + ':' + m.id
+      ? '<div class="emoji-row">' + chatEmojis.map(function (e) {
+          return '<button type="button" data-react="' + scope + ':' + m.id + ':' + e + '">' + e + '</button>';
+        }).join('') + '</div>'
+      : '';
+    var pinBtn = scope === 'room' && isAdminUser
+      ? '<button type="button" data-pin="' + m.id + '">' + (m.pinned ? 'Desfijar' : 'Fijar') + '</button>'
+      : '';
+    var delBtn = (m.mine || isAdminUser)
+      ? '<button type="button" data-delmsg="' + scope + ':' + m.id + '">Borrar</button>'
+      : '';
+    return '<div class="msg' + (m.mine ? ' mine' : '') + '" id="msg-' + scope + '-' + m.id + '" data-mid="' + m.id + '">'
+      + '<div class="msg-head"><strong>' + esc(m.author) + '</strong>'
+      + (m.is_admin ? '<span class="admin-chip">Admin</span>' : '')
+      + '<span class="msg-time">' + chatTime(m.created_at) + '</span></div>'
+      + quote
+      + '<div class="msg-body">' + linkify(m.body) + '</div>'
+      + reactionsHtml(m, scope)
+      + picker
+      + '<div class="msg-actions">'
+      + '<button type="button" data-picker="' + scope + ':' + m.id + '">Reaccionar</button>'
+      + '<button type="button" data-reply="' + scope + ':' + m.id + '">Responder</button>'
+      + pinBtn + delBtn
+      + '</div></div>';
+  }
+
+  function msgHash(messages, pinned) {
+    var rx = 0;
+    messages.forEach(function (m) { (m.reactions || []).forEach(function (r) { rx += r.count; }); });
+    var last = messages.length ? messages[messages.length - 1].id : 0;
+    return messages.length + ':' + last + ':' + rx + ':' + (pinned ? pinned.id : 0);
+  }
+
+  function renderMessages(container, messages, scope, stick) {
+    var distBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    container.innerHTML = messages.length
+      ? messages.map(function (m) { return messageHtml(m, scope); }).join('')
+      : '<p class="chat-empty">Todavía no hay mensajes. ¡Sé el primero en saludar! 👋</p>';
+    if (stick || distBottom < 120) container.scrollTop = container.scrollHeight;
+    else container.scrollTop = container.scrollHeight - container.clientHeight - distBottom;
+  }
+
+  function findMsg(scope, id) {
+    var el = document.getElementById('msg-' + scope + '-' + id);
+    return el || null;
+  }
+
+  function setReplyBar(scope) {
+    var bar = $(scope === 'room' ? 'chat-replybar' : 'dm-replybar');
+    var t = replyTarget[scope];
+    if (!t) { bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.hidden = false;
+    bar.innerHTML = '<span>Respondiendo a <strong>' + esc(t.author) + '</strong>: ' + esc(t.body.slice(0, 80)) + '</span>'
+      + '<button type="button" id="' + scope + '-reply-cancel">✕</button>';
+    $(scope + '-reply-cancel').addEventListener('click', function () {
+      replyTarget[scope] = null; setReplyBar(scope);
+    });
+    $(scope === 'room' ? 'chat-input' : 'dm-input').focus();
+  }
+
+  // Guarda en el DOM el mensaje para poder citarlo al responder.
+  var msgStore = { room: {}, dm: {} };
+  function storeMessages(scope, messages) {
+    messages.forEach(function (m) { msgStore[scope][m.id] = m; });
+  }
+
+  async function loadRoom(force) {
+    try {
+      var data = await api('/api/chat/messages');
+      if (data.emojis) chatEmojis = data.emojis;
+      var h = msgHash(data.messages, data.pinned);
+      if (!force && h === roomHash) return;
+      roomHash = h;
+      storeMessages('room', data.messages);
+      renderMessages($('chat-messages'), data.messages, 'room', !!force);
+      var pin = $('chat-pinned');
+      if (data.pinned) {
+        pin.hidden = false;
+        pin.innerHTML = '📌 <strong>' + esc(data.pinned.author) + ':</strong> ' + esc(data.pinned.body);
+      } else pin.hidden = true;
+      api('/api/chat/seen', { method: 'POST' }).catch(function () {});
+      refreshChatBadges();
+    } catch (e) { /* sin red o sesión vencida */ }
+  }
+
+  async function loadThreads() {
+    var wrap = $('chat-threads');
+    try {
+      var data = await api('/api/chat/dm/threads');
+      wrap.hidden = false;
+      wrap.innerHTML = data.threads.length
+        ? data.threads.map(function (t) {
+            return '<button type="button" class="thread-item' + (dmClipperId === t.clipper_id ? ' active' : '') + '" data-thread="' + t.clipper_id + '">'
+              + '<span class="thread-name">' + esc(t.clipper_name) + '</span>'
+              + '<span class="thread-last">' + esc(t.last_body || '') + '</span>'
+              + (t.unread ? '<span class="chat-tab-badge">' + t.unread + '</span>' : '')
+              + '</button>';
+          }).join('')
+        : '<p class="chat-empty">Aún no hay conversaciones privadas.</p>';
+      wrap.querySelectorAll('[data-thread]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          dmClipperId = Number(b.getAttribute('data-thread'));
+          dmHash = '';
+          loadThreads(); loadDm(true);
+        });
+      });
+    } catch (e) { /* solo admin */ }
+  }
+
+  async function loadDm(force) {
+    var isAdminUser = state.user && state.user.role === 'admin';
+    if (isAdminUser && !dmClipperId) { $('dm-box').hidden = true; $('dm-empty').hidden = false; return; }
+    try {
+      var data = await api('/api/chat/dm/' + (isAdminUser ? dmClipperId : 0));
+      dmClipperId = data.clipper_id;
+      var h = msgHash(data.messages, null);
+      $('dm-box').hidden = false; $('dm-empty').hidden = true;
+      var head = $('chat-dm-head');
+      head.hidden = false;
+      head.textContent = isAdminUser ? ('Conversación con ' + data.clipper_name) : 'Conversación con el equipo de Clippers Pro';
+      if (!force && h === dmHash) { refreshChatBadges(); return; }
+      dmHash = h;
+      storeMessages('dm', data.messages);
+      renderMessages($('dm-messages'), data.messages, 'dm', !!force);
+      if (isAdminUser) loadThreads();
+      refreshChatBadges();
+    } catch (e) { /* sin red o sesión vencida */ }
+  }
+
+  async function refreshChatBadges() {
+    if (!state.user) return;
+    try {
+      var data = await api('/api/chat/unread');
+      var nav = $('chat-nav-badge');
+      nav.hidden = !data.total;
+      nav.textContent = data.total > 99 ? '99+' : data.total;
+      var dmBadge = $('chat-dm-badge');
+      if (dmBadge) { dmBadge.hidden = !data.dm; dmBadge.textContent = data.dm; }
+    } catch (e) { /* silencioso */ }
+  }
+
+  function switchChatTab(tab) {
+    chatTab = tab;
+    $('chat-tab-room').classList.toggle('is-active', tab === 'room');
+    $('chat-tab-dm').classList.toggle('is-active', tab === 'dm');
+    $('chat-room-view').hidden = tab !== 'room';
+    $('chat-dm-view').hidden = tab !== 'dm';
+    if (tab === 'room') loadRoom(false);
+    else if (state.user && state.user.role === 'admin') { loadThreads(); loadDm(false); }
+    else loadDm(true);
+  }
+
+  function enterChat() {
+    if (state.user && state.user.role === 'admin') $('chat-dm-label').textContent = 'Mensajes privados';
+    roomHash = ''; dmHash = '';
+    switchChatTab(chatTab);
+    refreshChatBadges();
+  }
+
+  $('chat-tab-room').addEventListener('click', function () { switchChatTab('room'); });
+  $('chat-tab-dm').addEventListener('click', function () { switchChatTab('dm'); });
+
+  async function sendChat(scope) {
+    var input = $(scope === 'room' ? 'chat-input' : 'dm-input');
+    var body = input.value.trim();
+    if (!body) return;
+    var t = replyTarget[scope];
+    try {
+      var path = scope === 'room' ? '/api/chat/messages' : '/api/chat/dm/' + (dmClipperId || 0);
+      var data = await api(path, {
+        method: 'POST',
+        body: JSON.stringify({ body: body, reply_to_id: t ? t.id : null })
+      });
+      input.value = '';
+      replyTarget[scope] = null; setReplyBar(scope);
+      if (scope === 'room') {
+        roomHash = '';
+        await loadRoom(true);
+      } else {
+        dmHash = '';
+        if (data && data.message) dmClipperId = dmClipperId || data.message.author_id;
+        await loadDm(true);
+      }
+    } catch (e) { alert(e.message); }
+  }
+  $('chat-form').addEventListener('submit', function (ev) { ev.preventDefault(); sendChat('room'); });
+  $('dm-form').addEventListener('submit', function (ev) { ev.preventDefault(); sendChat('dm'); });
+
+  // Acciones de los mensajes (delegación: reaccionar, responder, fijar, borrar, ir a la cita)
+  document.addEventListener('click', async function (ev) {
+    var reactBtn = ev.target.closest('[data-react]');
+    if (reactBtn) {
+      var parts = reactBtn.getAttribute('data-react').split(':');
+      var scope = parts[0], mid = Number(parts[1]), emoji = parts.slice(2).join(':');
+      try {
+        var r = await api('/api/chat/react', {
+          method: 'POST',
+          body: JSON.stringify({ scope: scope, message_id: mid, emoji: emoji })
+        });
+        if (msgStore[scope][mid]) msgStore[scope][mid].reactions = r.reactions;
+        if (scope === 'room') roomHash = '__x__';
+        else dmHash = '__x__';
+        openPickerFor = null;
+        if (scope === 'room') loadRoom(false); else loadDm(false);
+      } catch (e) { alert(e.message); }
+      return;
+    }
+    var pickerBtn = ev.target.closest('[data-picker]');
+    if (pickerBtn) {
+      var key = pickerBtn.getAttribute('data-picker');
+      openPickerFor = openPickerFor === key ? null : key;
+      roomHash = '__x__'; dmHash = '__x__';
+      if (chatTab === 'room') loadRoom(false); else loadDm(false);
+      return;
+    }
+    var replyBtn = ev.target.closest('[data-reply]');
+    if (replyBtn) {
+      var rp = replyBtn.getAttribute('data-reply').split(':');
+      var m = msgStore[rp[0]][Number(rp[1])];
+      if (m) {
+        replyTarget[rp[0]] = { id: m.id, author: m.author, body: m.body };
+        setReplyBar(rp[0]);
+      }
+      return;
+    }
+    var gotoBtn = ev.target.closest('[data-goto]');
+    if (gotoBtn) {
+      var gp = gotoBtn.getAttribute('data-goto').split(':');
+      var el = findMsg(gp[0], gp[1]);
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.classList.add('msg-flash');
+        setTimeout(function () { el.classList.remove('msg-flash'); }, 1600);
+      }
+      return;
+    }
+    var pinBtn = ev.target.closest('[data-pin]');
+    if (pinBtn) {
+      var pid = Number(pinBtn.getAttribute('data-pin'));
+      var m2 = msgStore.room[pid];
+      try {
+        if (m2 && m2.pinned) await api('/api/chat/messages/' + pid + '/pin', { method: 'DELETE' });
+        else await api('/api/chat/messages/' + pid + '/pin', { method: 'POST' });
+        roomHash = ''; loadRoom(true);
+      } catch (e) { alert(e.message); }
+      return;
+    }
+    var delBtn = ev.target.closest('[data-delmsg]');
+    if (delBtn) {
+      var dp = delBtn.getAttribute('data-delmsg').split(':');
+      var res = await openFlowDialog({
+        title: 'Borrar mensaje',
+        message: 'El mensaje se eliminará para todos. Esta acción no se puede deshacer.',
+        okLabel: 'Borrar'
+      });
+      if (!res.ok) return;
+      try {
+        var path = dp[0] === 'room' ? '/api/chat/messages/' + dp[1] : '/api/chat/dm/' + dp[1];
+        await api(path, { method: 'DELETE' });
+        if (dp[0] === 'room') { roomHash = ''; loadRoom(false); }
+        else { dmHash = ''; loadDm(false); }
+      } catch (e) { alert(e.message); }
+    }
+  });
+
+  // Actualización automática del chat cada 5 segundos.
+  setInterval(function () {
+    if (!state.user || document.hidden) return;
+    refreshChatBadges();
+    if (currentPageName() === 'chat') {
+      if (chatTab === 'room') loadRoom(false);
+      else if (dmClipperId || !(state.user && state.user.role === 'admin')) loadDm(false);
+      else loadThreads();
+    }
+  }, 5000);
 
   /* ---------------- Init ---------------- */
   // Enlace desde la página del brief: /?submit=<id de campaña>

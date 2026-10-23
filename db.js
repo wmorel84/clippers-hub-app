@@ -257,9 +257,48 @@ function migrateCampaignBudgetReserved() {
     db.exec('ALTER TABLE campaigns ADD COLUMN budget_reserved REAL NOT NULL DEFAULT 0');
   }
 }
+function migrateChat() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      reply_to_id INTEGER,
+      reply_body TEXT NOT NULL DEFAULT '',
+      reply_author TEXT NOT NULL DEFAULT '',
+      pinned INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS chat_reactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope TEXT NOT NULL DEFAULT 'room',
+      message_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      emoji TEXT NOT NULL,
+      UNIQUE(scope, message_id, user_id, emoji)
+    );
+    CREATE TABLE IF NOT EXISTS dm_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clipper_id INTEGER NOT NULL REFERENCES users(id),
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      reply_to_id INTEGER,
+      reply_body TEXT NOT NULL DEFAULT '',
+      reply_author TEXT NOT NULL DEFAULT '',
+      read_by_clipper INTEGER NOT NULL DEFAULT 0,
+      read_by_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS chat_seen (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id),
+      last_id INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+}
 migrateClipEarnings();
 migrateCampaignEngagement();
 migrateCampaignBudgetReserved();
+migrateChat();
 seedCampaigns();
 
 // Notificaciones de ejemplo: se crean para cada usuario nuevo (y para el admin
