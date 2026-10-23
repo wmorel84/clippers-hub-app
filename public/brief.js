@@ -70,7 +70,6 @@
         $('brief-budget-total').textContent = 'de US$ ' + c.budget_total;
         $('brief-budget-fill').style.width = bp.availPct + '%';
         $('brief-budget-fill-res').style.width = bp.resPct + '%';
-        $('brief-budget-updated').textContent = 'Actualizado: ' + fmtDateTime(c.updated_at);
       }
       var reqs = (c.requirements || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
       if (c.min_engagement_pct > 0 && !/engagement/i.test(c.requirements || '')) {

@@ -150,7 +150,7 @@ h1, h2, h3 { font-family: "Archivo", sans-serif; font-weight: 800; letter-spacin
 .dot-avail { background: var(--accent); }
 .dot-res { background: #f59e0b; }
 .budget-label strong { color: var(--ink); }
-.budget-updated { font-size: .72rem; color: var(--muted); margin-top: 4px; display: block; }
+.budget-total { font-size: .78rem; color: var(--muted); margin-top: 6px; display: block; }
 .card-actions { display: flex; gap: 10px; margin-top: auto; padding-top: 8px; }
 .btn {
   border: 1px solid var(--line); border-radius: 10px; padding: 11px 18px; font-weight: 700;

@@ -107,13 +107,12 @@
     return '<div class="budget">' +
       '<div class="budget-label">' +
       '<span><i class="dot dot-avail"></i>Disponible <strong>US$ ' + esc(c.budget_remaining) + '</strong></span>' +
-      '<span><i class="dot dot-res"></i>Reservado <strong>US$ ' + esc(c.budget_reserved || 0) + '</strong></span>' +
-      '<span class="muted">de US$ ' + esc(c.budget_total) + '</span></div>' +
+      '<span><i class="dot dot-res"></i>Reservado <strong>US$ ' + esc(c.budget_reserved || 0) + '</strong></span></div>' +
       '<div class="budget-track">' +
       '<div class="budget-fill fill-avail" style="width:' + p.availPct + '%"></div>' +
       '<div class="budget-fill fill-res" style="width:' + p.resPct + '%"></div>' +
       '</div>' +
-      '<span class="budget-updated">Actualizado: ' + esc(fmtDateTime(c.updated_at)) + '</span></div>';
+      '<span class="budget-total">de US$ ' + esc(c.budget_total) + '</span></div>';
   }
 
   function filteredCampaigns() {
