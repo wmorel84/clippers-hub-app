@@ -7,6 +7,13 @@ const { sendPushToUser } = require('../lib/push');
 
 const router = express.Router();
 
+// Igual que en campaigns.js: la tarifa del clipper se baja al múltiplo de
+// US$0.05 más cercano por debajo, para que el precio siempre termine en 5
+// o en 0 y el margen nunca baje del guardado.
+function floor05(n) {
+  return Math.floor((Number(n) || 0) * 20 + 1e-9) / 20;
+}
+
 function notify(userId, title, body) {
   db.prepare('INSERT INTO notifications (user_id, title, body) VALUES (?, ?, ?)').run(userId, title, body || '');
   sendPushToUser(userId, { title, body: body || '' });
@@ -16,12 +23,12 @@ function notify(userId, title, body) {
 // Devuelve { cents, reason, newViews, minViews }. reason: 'ok' | 'manual' | 'min' | 'max' | 'none'.
 function suggestCredit(clip) {
   const margin = Math.min(100, Math.max(0, Number(clip.margin_pct) || 0));
-  const rate = Number(clip.source_per_1k) * (1 - margin / 100);
+  const rate = floor05(Number(clip.source_per_1k) * (1 - margin / 100));
   if (!(Number(clip.source_per_1k) > 0) || !(rate > 0)) {
     return { cents: 0, reason: 'manual', newViews: 0, minViews: 0 };
   }
   const minViews = (Number(clip.source_min_clip) / Number(clip.source_per_1k)) * 1000;
-  const maxCents = Math.round(Number(clip.source_max_clip) * (1 - margin / 100) * 100);
+  const maxCents = Math.round(floor05(Number(clip.source_max_clip) * (1 - margin / 100)) * 100);
   if (clip.views < minViews) {
     return { cents: 0, reason: 'min', newViews: 0, minViews: Math.round(minViews) };
   }
@@ -69,12 +76,12 @@ function isValidUrl(url) {
 // Devuelve { cents, note, minViews, meetsMin }. note: 'ok' | 'manual'.
 function estimateTotal(clip) {
   const margin = Math.min(100, Math.max(0, Number(clip.margin_pct) || 0));
-  const rate = Number(clip.source_per_1k) * (1 - margin / 100);
+  const rate = floor05(Number(clip.source_per_1k) * (1 - margin / 100));
   if (!(Number(clip.source_per_1k) > 0) || !(rate > 0)) {
     return { cents: 0, note: 'manual', minViews: 0, meetsMin: false };
   }
   const minViews = Math.round((Number(clip.source_min_clip) / Number(clip.source_per_1k)) * 1000);
-  const maxCents = Math.round(Number(clip.source_max_clip) * (1 - margin / 100) * 100);
+  const maxCents = Math.round(floor05(Number(clip.source_max_clip) * (1 - margin / 100)) * 100);
   let cents = Math.round((clip.views / 1000) * rate * 100);
   if (maxCents > 0) cents = Math.min(cents, maxCents);
   return { cents, note: 'ok', minViews, meetsMin: clip.views >= minViews };

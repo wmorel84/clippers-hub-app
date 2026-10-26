@@ -644,7 +644,7 @@
     $('cf-source-per1k').value = c && c.source_per_1k ? c.source_per_1k : 0;
     $('cf-source-min').value = c && c.source_min_clip ? c.source_min_clip : 0;
     $('cf-source-max').value = c && c.source_max_clip ? c.source_max_clip : 0;
-    $('cf-margin').value = c && c.margin_pct !== undefined && c.margin_pct !== null ? c.margin_pct : 50;
+    $('cf-margin').value = c && c.margin_pct !== undefined && c.margin_pct !== null ? c.margin_pct : 40;
     $('cf-engagement').value = c && c.source_min_engagement ? c.source_min_engagement : 0;
     $('cf-budget-total').value = c ? c.budget_total : 0;
     $('cf-budget-remaining').value = c ? c.budget_remaining : 0;
@@ -699,7 +699,7 @@
       source_per_1k: Number($('cf-source-per1k').value) || 0,
       source_min_clip: Number($('cf-source-min').value) || 0,
       source_max_clip: Number($('cf-source-max').value) || 0,
-      margin_pct: $('cf-margin').value === '' ? 50 : Number($('cf-margin').value),
+      margin_pct: $('cf-margin').value === '' ? 40 : Number($('cf-margin').value),
       source_min_engagement: Number($('cf-engagement').value) || 0,
       budget_total: Number($('cf-budget-total').value) || 0,
       budget_remaining: Number($('cf-budget-remaining').value) || 0,

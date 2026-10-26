@@ -28,6 +28,14 @@ function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
 
+// Precio del clipper, redondo y nunca por encima (oct 2026, pedido de Wilson):
+// la tarifa se baja al múltiplo de US$0.05 más cercano por debajo, así el
+// precio siempre termina en 5 o en 0 y el margen de Wilson nunca baja del
+// margen guardado (por defecto 40%).
+function floor05(n) {
+  return Math.floor((Number(n) || 0) * 20 + 1e-9) / 20;
+}
+
 function marginFactor(row) {
   const m = Math.min(100, Math.max(0, Number(row.margin_pct)));
   return (100 - m) / 100;
@@ -42,9 +50,9 @@ function money(n) {
 function clipperPayoutText(row) {
   if (Number(row.source_per_1k) > 0) {
     const f = marginFactor(row);
-    let t = `${money(Number(row.source_per_1k) * f)} por cada 1.000 vistas`;
-    const min = round2(Number(row.source_min_clip) * f);
-    const max = round2(Number(row.source_max_clip) * f);
+    let t = `${money(floor05(Number(row.source_per_1k) * f))} por cada 1.000 vistas`;
+    const min = floor05(Number(row.source_min_clip) * f);
+    const max = floor05(Number(row.source_max_clip) * f);
     if (min > 0 || max > 0) t += ` (mín. ${money(min)}/clip · máx. ${money(max)}/clip)`;
     return t;
   }
@@ -103,7 +111,7 @@ function sanitizeCampaign(b) {
   b = b || {};
   const title = String(b.title || '').trim();
   if (!title) throw new Error('Falta el título.');
-  const margin = Math.min(100, Math.max(0, b.margin_pct === undefined || b.margin_pct === '' ? 50 : Number(b.margin_pct) || 0));
+  const margin = Math.min(100, Math.max(0, b.margin_pct === undefined || b.margin_pct === '' ? 40 : Number(b.margin_pct) || 0));
   return {
     title,
     artist: String(b.artist || '').trim(),
