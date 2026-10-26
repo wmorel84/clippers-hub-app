@@ -316,7 +316,27 @@ function migrateChat() {
 migrateClipEarnings();
 migrateCampaignEngagement();
 migrateCampaignBudgetReserved();
+// Palabras restringidas de la comunidad (oct 2026, pedido de Wilson):
+// la tabla se crea una sola vez y ahí mismo se siembran las dos palabras
+// iniciales (whop, lulosa). Si la tabla ya existe, NO se vuelve a sembrar,
+// para que lo que el admin borre después no reaparezca en cada reinicio.
+function migrateChatBlockedWords() {
+  const exists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_blocked_words'")
+    .get();
+  if (exists) return;
+  db.exec(`
+    CREATE TABLE chat_blocked_words (
+      word TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  const insert = db.prepare('INSERT INTO chat_blocked_words (word) VALUES (?)');
+  insert.run('whop');
+  insert.run('lulosa');
+}
 migrateChat();
+migrateChatBlockedWords();
 migrateCourse();
 seedCampaigns();
 

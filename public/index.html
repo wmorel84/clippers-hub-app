@@ -294,6 +294,16 @@
           </div>
         </div>
         <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Palabras restringidas en la comunidad</h3>
+          <p style="color:var(--muted)">Si un mensaje de la comunidad contiene una de estas palabras, no se guarda y nadie lo ve. Solo aplica a la comunidad, no a los privados con el admin, y tú como admin quedas exento. Al autor solo le sale un aviso genérico, sin decirle cuál palabra fue.</p>
+          <div class="row-actions">
+            <input id="blocked-word-input" type="text" placeholder="Palabra nueva" autocomplete="off" style="max-width:220px">
+            <button class="btn small accent" id="blocked-word-add" type="button">Agregar palabra</button>
+          </div>
+          <div id="blocked-words-list" style="margin-top:10px"></div>
+          <p id="blocked-words-msg" style="margin-top:8px;color:var(--muted)"></p>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
           <h3>Respaldo de la base de datos</h3>
           <p style="color:var(--muted)">Descarga una copia de seguridad o restaura una anterior. Después de restaurar, reinicia el servicio en Railway para aplicarlo.</p>
           <div class="row-actions">

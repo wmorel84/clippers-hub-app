@@ -21,6 +21,31 @@ function cleanBody(b) {
   return s ? s.slice(0, MAX_BODY) : '';
 }
 
+// Palabras restringidas (solo comunidad, oct 2026): se comparan palabras
+// completas, sin importar mayúsculas ni acentos. El aviso al autor es
+// genérico a propósito: nunca revela cuál palabra coincidió.
+function normalizeWord(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+function blockedWords() {
+  return db
+    .prepare('SELECT word FROM chat_blocked_words ORDER BY word')
+    .all()
+    .map((r) => r.word);
+}
+function containsBlockedWord(body) {
+  const words = blockedWords();
+  if (!words.length) return false;
+  const tokens = new Set(normalizeWord(body).split(/[^a-z0-9]+/).filter(Boolean));
+  return words.some((w) => tokens.has(w));
+}
+function cleanBlockedWord(w) {
+  return normalizeWord(w).replace(/[^a-z0-9]/g, '');
+}
+
 // Reacciones agrupadas por mensaje: { msgId: [{emoji, count, mine}] }
 function reactionsFor(scope, ids, myId) {
   const out = {};
@@ -77,10 +102,38 @@ router.get('/messages', requireAuth, (req, res) => {
   });
 });
 
+// GET /api/chat/blocked-words — solo admin: la lista (nunca se muestra a clippers)
+router.get('/blocked-words', requireAuth, (req, res) => {
+  if (!isAdmin(me(req))) return res.status(403).json({ error: 'Solo el admin.' });
+  res.json({ words: blockedWords() });
+});
+
+// POST /api/chat/blocked-words — solo admin: agregar una palabra
+router.post('/blocked-words', requireAuth, (req, res) => {
+  if (!isAdmin(me(req))) return res.status(403).json({ error: 'Solo el admin.' });
+  const word = cleanBlockedWord(req.body && req.body.word);
+  if (!word || word.length > 50) return res.status(400).json({ error: 'Palabra no válida.' });
+  db.prepare('INSERT OR IGNORE INTO chat_blocked_words (word) VALUES (?)').run(word);
+  res.status(201).json({ words: blockedWords() });
+});
+
+// DELETE /api/chat/blocked-words/:word — solo admin: quitar una palabra
+router.delete('/blocked-words/:word', requireAuth, (req, res) => {
+  if (!isAdmin(me(req))) return res.status(403).json({ error: 'Solo el admin.' });
+  db.prepare('DELETE FROM chat_blocked_words WHERE word = ?').run(cleanBlockedWord(req.params.word));
+  res.json({ words: blockedWords() });
+});
+
 // POST /api/chat/messages — enviar a la comunidad
 router.post('/messages', requireAuth, (req, res) => {
   const body = cleanBody(req.body && req.body.body);
   if (!body) return res.status(400).json({ error: 'Escribe un mensaje.' });
+  // Filtro solo comunidad: el admin queda exento; los privados no se revisan.
+  // Si coincide, el mensaje NO se guarda y el aviso es solo "Este mensaje no
+  // se pudo enviar": no dice cuál palabra ni el motivo.
+  if (!isAdmin(me(req)) && containsBlockedWord(body)) {
+    return res.status(400).json({ error: 'Este mensaje no se pudo enviar' });
+  }
   let reply = null;
   const rid = Number(req.body && req.body.reply_to_id) || null;
   if (rid) {

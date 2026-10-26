@@ -54,7 +54,7 @@
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
-    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); }
+    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); loadBlockedWords(); }
     if (page === 'chat') enterChat();
     if (page === 'cursos') loadCourseHome();
     window.scrollTo(0, 0);
@@ -999,6 +999,40 @@
       $('backup-msg').textContent = e.message;
     }
     $('backup-file').value = '';
+  });
+
+  /* ---------------- Palabras restringidas (admin) ---------------- */
+  async function loadBlockedWords() {
+    var list = $('blocked-words-list');
+    if (!list) return;
+    if (!state.user || state.user.role !== 'admin') { list.innerHTML = ''; return; }
+    try {
+      var data = await api('/api/chat/blocked-words');
+      list.innerHTML = (data.words || []).map(function (w) {
+        return '<span style="display:inline-block;margin:0 8px 8px 0;padding:4px 10px;border:1px solid var(--line);border-radius:999px">' +
+          esc(w) + ' <button class="link-btn" data-blocked-del="' + esc(w) + '" type="button">Quitar</button></span>';
+      }).join('') || '<span class="muted">Sin palabras restringidas.</span>';
+      list.querySelectorAll('[data-blocked-del]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          try {
+            await api('/api/chat/blocked-words/' + encodeURIComponent(btn.getAttribute('data-blocked-del')), { method: 'DELETE' });
+            loadBlockedWords();
+          } catch (e) { $('blocked-words-msg').textContent = e.message; }
+        });
+      });
+    } catch (e) { list.innerHTML = '<span class="muted">' + esc(e.message) + '</span>'; }
+  }
+  var blockedAddBtn = $('blocked-word-add');
+  if (blockedAddBtn) blockedAddBtn.addEventListener('click', async function () {
+    var input = $('blocked-word-input');
+    var word = input.value.trim();
+    if (!word) return;
+    try {
+      await api('/api/chat/blocked-words', { method: 'POST', body: JSON.stringify({ word: word }) });
+      input.value = '';
+      $('blocked-words-msg').textContent = 'Palabra agregada.';
+      loadBlockedWords();
+    } catch (e) { $('blocked-words-msg').textContent = e.message; }
   });
 
   /* ---------------- Login con Google ---------------- */
