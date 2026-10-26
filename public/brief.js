@@ -35,6 +35,49 @@
     return { availPct: availPct, resPct: resPct };
   }
 
+  // Convierte URLs en enlaces clicables (los Ref: de los estilos, por
+  // ejemplo). Primero se escapa el texto y luego se enlazan las URLs, así
+  // nunca se inyecta HTML que venga en el brief.
+  function linkify(text) {
+    return esc(text).replace(/https?:\/\/[^\s<]+/g, function (url) {
+      var trail = '';
+      while (/[.,;:!?)\]]$/.test(url)) { trail = url.slice(-1) + trail; url = url.slice(0, -1); }
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>' + trail;
+    });
+  }
+  function richLines(text) {
+    return String(text || '').split(/\r?\n/).map(linkify).join('<br>');
+  }
+
+  // Material de referencia: plataforma por la URL, reproductor incrustado
+  // cuando la plataforma lo permite y, siempre, el enlace a la fuente de
+  // origen (Instagram/TikTok/Drive), nunca a Lulosa/Whop.
+  function materialInfo(url) {
+    var u = String(url || '').trim();
+    var low = u.toLowerCase();
+    var platform = 'Enlace';
+    var embed = '';
+    var m;
+    if (low.indexOf('instagram.com') !== -1) {
+      platform = 'Instagram';
+      m = u.match(/instagram\.com\/(p|reel|reels)\/([^/?#]+)/);
+      if (m) embed = '<iframe class="material-frame-vertical" src="https://www.instagram.com/' + (m[1] === 'reels' ? 'reel' : m[1]) + '/' + m[2] + '/embed/" allowtransparency="true" allowfullscreen></iframe>';
+    } else if (low.indexOf('tiktok.com') !== -1) {
+      platform = 'TikTok';
+      m = u.match(/\/video\/(\d+)/);
+      if (m) embed = '<iframe class="material-frame-vertical" src="https://www.tiktok.com/embed/v2/' + m[1] + '" allowfullscreen></iframe>';
+    } else if (low.indexOf('drive.google.com') !== -1) {
+      platform = 'Drive';
+      m = u.match(/\/file\/d\/([^/?#]+)/);
+      if (m) embed = '<iframe class="material-frame-horizontal" src="https://drive.google.com/file/d/' + m[1] + '/preview" allowfullscreen></iframe>';
+    } else if (low.indexOf('youtube.com') !== -1 || low.indexOf('youtu.be') !== -1) {
+      platform = 'YouTube';
+      m = u.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+      if (m) embed = '<iframe class="material-frame-horizontal" src="https://www.youtube.com/embed/' + m[1] + '" allowfullscreen></iframe>';
+    }
+    return { url: u, platform: platform, embed: embed };
+  }
+
   var m = window.location.pathname.match(/\/campana\/(\d+)/);
   var id = m ? Number(m[1]) : 0;
 
@@ -81,9 +124,18 @@
         reqs.push('Engagement mínimo del ' + c.min_engagement_pct + '% (lo exige la campaña para aprobar el clip).');
       }
       $('brief-requirements').innerHTML = reqs.length
-        ? reqs.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('')
+        ? reqs.map(function (r) { return '<li>' + linkify(r) + '</li>'; }).join('')
         : '<li>Sin requisitos publicados.</li>';
-      $('brief-text').textContent = c.brief || '';
+      $('brief-text').innerHTML = c.brief ? richLines(c.brief) : '';
+      var mats = (c.materials || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).map(materialInfo);
+      if (mats.length) {
+        $('brief-materials').innerHTML = mats.map(function (mi) {
+          return '<div class="material-card">' +
+            (mi.embed ? '<div class="material-embed">' + mi.embed + '</div>' : '') +
+            '<a class="material-origin" href="' + esc(mi.url) + '" target="_blank" rel="noopener">Ver en ' + mi.platform + ' ↗</a></div>';
+        }).join('');
+        $('brief-materials-wrap').hidden = false;
+      }
       var submit = $('brief-submit');
       if (c.is_example) {
         submit.hidden = true;

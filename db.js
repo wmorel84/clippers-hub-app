@@ -257,6 +257,15 @@ function migrateCampaignBudgetReserved() {
     db.exec('ALTER TABLE campaigns ADD COLUMN budget_reserved REAL NOT NULL DEFAULT 0');
   }
 }
+// Material de referencia por campaña (oct 2026, pedido de Wilson): URLs de
+// Instagram/TikTok/Drive que el creador compartió, una por línea. Solo se
+// muestra en el brief; nunca es un enlace a Lulosa/Whop.
+function migrateCampaignMaterials() {
+  const cols = db.prepare('PRAGMA table_info(campaigns)').all().map((c) => c.name);
+  if (!cols.includes('materials')) {
+    db.exec("ALTER TABLE campaigns ADD COLUMN materials TEXT NOT NULL DEFAULT ''");
+  }
+}
 function migrateCourse() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS course_progress (
@@ -316,6 +325,7 @@ function migrateChat() {
 migrateClipEarnings();
 migrateCampaignEngagement();
 migrateCampaignBudgetReserved();
+migrateCampaignMaterials();
 // Palabras restringidas de la comunidad (oct 2026, pedido de Wilson):
 // la tabla se crea una sola vez y ahí mismo se siembran las dos palabras
 // iniciales (whop, lulosa). Si la tabla ya existe, NO se vuelve a sembrar,

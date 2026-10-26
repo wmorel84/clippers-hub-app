@@ -651,6 +651,7 @@
     $('cf-budget-reserved').value = c ? (c.budget_reserved || 0) : 0;
     $('cf-requirements').value = c ? c.requirements : '';
     $('cf-brief').value = c ? c.brief : '';
+    $('cf-materials').value = c ? (c.materials || '') : '';
     $('cf-image-url').value = c ? (c.image_url || '') : '';
     $('cf-status').value = c ? c.status : 'active';
     $('cf-example').checked = c ? !!c.is_example : false;
@@ -705,6 +706,7 @@
       budget_reserved: Number($('cf-budget-reserved').value) || 0,
       requirements: $('cf-requirements').value.trim(),
       brief: $('cf-brief').value.trim(),
+      materials: $('cf-materials').value.trim(),
       image_url: $('cf-image-url').value.trim(),
       status: $('cf-status').value,
       is_example: $('cf-example').checked

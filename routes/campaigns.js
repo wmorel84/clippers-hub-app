@@ -8,7 +8,7 @@ const router = express.Router();
 const PUBLIC_FIELDS = `
   id, title, artist, platform, category, payout_text,
   budget_total, budget_remaining, budget_reserved, deadline, requirements, brief,
-  is_example, status, created_at, updated_at, image_url
+  is_example, status, created_at, updated_at, image_url, materials
 `;
 
 // Campos solo para el admin (la tarifa fuente NUNCA sale en la API pública).
@@ -79,6 +79,24 @@ function toAdminCampaign(row) {
   return out;
 }
 
+// Material de referencia: una URL por línea. Se extrae la primera URL de
+// cada línea, así sirve pegar "Ref: https://..." tal como viene en Lulosa.
+// Si el campo viene ausente (undefined) se devuelve undefined: en una
+// actualización eso significa "conservar el material anterior", para que un
+// import sin material no lo borre. El formulario del admin siempre lo envía
+// (aunque sea vacío), así que desde ahí sí se puede quitar todo.
+function cleanMaterials(v) {
+  if (v === undefined) return undefined;
+  const urls = String(v)
+    .split(/\r?\n/)
+    .map((line) => {
+      const m = line.match(/https?:\/\/[^\s"'<>]+/);
+      return m ? m[0].replace(/[.,;:)]+$/, '') : '';
+    })
+    .filter(Boolean);
+  return [...new Set(urls)].join('\n').slice(0, 4000);
+}
+
 // Sanitiza y valida los campos de una campaña (usado por crear, editar e importar).
 // Lanza Error si el título falta.
 function sanitizeCampaign(b) {
@@ -98,6 +116,7 @@ function sanitizeCampaign(b) {
     deadline: String(b.deadline || '').trim(),
     requirements: String(b.requirements || '').trim(),
     brief: String(b.brief || '').trim(),
+    materials: cleanMaterials(b.materials),
     image_url: String(b.image_url || '').trim().slice(0, 600),
     is_example: b.is_example ? 1 : 0,
     status: b.status === 'inactive' ? 'inactive' : 'active',
@@ -114,31 +133,46 @@ function insertCampaign(c) {
       INSERT INTO campaigns
         (title, artist, platform, category, payout_text, budget_total, budget_remaining, budget_reserved,
          deadline, requirements, brief, is_example, status,
-         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         source_per_1k, source_min_clip, source_max_clip, margin_pct, source_min_engagement, image_url, materials)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
     c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining, c.budget_reserved,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
-    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement, c.image_url
+    c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement, c.image_url,
+    c.materials === undefined ? '' : c.materials
   ).lastInsertRowid;
 }
 
 function updateCampaign(id, c) {
-  db.prepare(`
-      UPDATE campaigns SET
-        title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
-        budget_total = ?, budget_remaining = ?, budget_reserved = ?, deadline = ?, requirements = ?,
-        brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
-        source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
-        source_min_engagement = ?, image_url = CASE WHEN ? <> '' THEN ? ELSE image_url END
-      WHERE id = ?
-    `).run(
+  const base = [
     c.title, c.artist, c.platform, c.category, c.payout_text, c.budget_total, c.budget_remaining, c.budget_reserved,
     c.deadline, c.requirements, c.brief, c.is_example, c.status,
     c.source_per_1k, c.source_min_clip, c.source_max_clip, c.margin_pct, c.source_min_engagement,
     c.image_url, c.image_url,
-    id
-  );
+  ];
+  if (c.materials === undefined) {
+    // Sin material en el payload: se conserva el anterior.
+    db.prepare(`
+        UPDATE campaigns SET
+          title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
+          budget_total = ?, budget_remaining = ?, budget_reserved = ?, deadline = ?, requirements = ?,
+          brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
+          source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
+          source_min_engagement = ?, image_url = CASE WHEN ? <> '' THEN ? ELSE image_url END
+        WHERE id = ?
+      `).run(...base, id);
+  } else {
+    db.prepare(`
+        UPDATE campaigns SET
+          title = ?, artist = ?, platform = ?, category = ?, payout_text = ?,
+          budget_total = ?, budget_remaining = ?, budget_reserved = ?, deadline = ?, requirements = ?,
+          brief = ?, is_example = ?, status = ?, updated_at = datetime('now'),
+          source_per_1k = ?, source_min_clip = ?, source_max_clip = ?, margin_pct = ?,
+          source_min_engagement = ?, image_url = CASE WHEN ? <> '' THEN ? ELSE image_url END,
+          materials = ?
+        WHERE id = ?
+      `).run(...base, c.materials, id);
+  }
 }
 
 // ---------- Imagen automática (pedido de Wilson, 20 oct 2026) ----------
