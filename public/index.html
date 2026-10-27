@@ -92,7 +92,14 @@
 
   <div class="app-shell">
     <header class="app-topbar">
-      <div class="topbar-page"><span>Panel de clippers</span><strong id="current-page-title">Campañas</strong><span id="current-page-subtitle"></span></div>
+      <div class="topbar-page" id="topbar-page"><span>Panel de clippers</span><strong id="current-page-title">Campañas</strong><span id="current-page-subtitle"></span>
+        <div class="topbar-chat-row" id="topbar-chat-row" hidden>
+          <div class="chat-tabs">
+            <button class="chat-tab is-active" id="chat-tab-room" type="button">Comunidad</button>
+            <button class="chat-tab" id="chat-tab-dm" type="button"><span id="chat-dm-label">Privado con el equipo</span> <span class="chat-tab-badge" id="chat-dm-badge" hidden></span></button>
+          </div>
+        </div>
+      </div>
       <button class="top-action" id="notifications-toggle" type="button" aria-label="Ver notificaciones" aria-expanded="false" aria-controls="notifications-panel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
         <span class="bell-dot" id="bell-dot" hidden>0</span>
@@ -194,10 +201,6 @@
 
       <!-- CHAT -->
       <section class="app-page" data-page="chat" id="page-chat" hidden>
-        <div class="chat-tabs">
-          <button class="chat-tab is-active" id="chat-tab-room" type="button">Comunidad</button>
-          <button class="chat-tab" id="chat-tab-dm" type="button"><span id="chat-dm-label">Privado con el equipo</span> <span class="chat-tab-badge" id="chat-dm-badge" hidden></span></button>
-        </div>
 
         <div id="chat-room-view">
           <div class="chat-pinned" id="chat-pinned" hidden></div>

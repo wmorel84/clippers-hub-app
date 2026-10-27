@@ -88,8 +88,14 @@ h1, h2, h3 { font-family: "Archivo", sans-serif; font-weight: 800; letter-spacin
 .topbar-page strong { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1.5rem; }
 #current-page-subtitle { display: block; font-size: .85rem; color: var(--muted); letter-spacing: 0; text-transform: none; margin-top: 2px; }
 #current-page-subtitle:empty { display: none; }
+/* Pestañas del chat en la barra superior: debajo de la palabra Chat,
+   con el subtítulo a su derecha, en la misma línea. */
+.topbar-chat-row { display: flex; align-items: center; gap: 16px; margin-top: 6px; }
+.topbar-chat-row[hidden] { display: none; }
+.topbar-chat-row .chat-tabs { margin-bottom: 0; }
 /* Chat y Logros a pantalla completa: sin encabezado grande, la caja crece. */
-#page-chat .chat-box, #page-logros .chat-box { height: calc(100vh - 170px); max-height: none; min-height: 420px; }
+#page-chat .chat-box { height: calc(100vh - 210px); max-height: none; min-height: 420px; }
+#page-logros .chat-box { height: calc(100vh - 170px); max-height: none; min-height: 420px; }
 .top-action {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 99px;

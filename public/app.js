@@ -57,6 +57,17 @@
     });
     $('current-page-title').textContent = pageTitles[page] || 'Campañas';
     $('current-page-subtitle').textContent = pageSubtitles[page] || '';
+    // En Chat, las pestañas van en la barra superior, debajo de la palabra
+    // Chat, y el subtítulo queda a su derecha, en la misma línea.
+    var row = $('topbar-chat-row');
+    var subtitle = $('current-page-subtitle');
+    if (page === 'chat') {
+      row.hidden = false;
+      row.appendChild(subtitle);
+    } else {
+      row.hidden = true;
+      $('topbar-page').insertBefore(subtitle, row);
+    }
     document.body.classList.remove('sidebar-open');
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
