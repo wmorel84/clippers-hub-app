@@ -1418,7 +1418,7 @@
     }
   });
 
-  // Actualización automática del chat cada 5 segundos.
+  // Actualización automática del chat y de Logros cada 5 segundos.
   setInterval(function () {
     if (!state.user || document.hidden) return;
     refreshChatBadges();
@@ -1426,6 +1426,8 @@
       if (chatTab === 'room') loadRoom(false);
       else if (dmClipperId || !(state.user && state.user.role === 'admin')) loadDm(false);
       else loadThreads();
+    } else if (currentPageName() === 'logros') {
+      loadAchievements(false);
     }
   }, 5000);
 
@@ -1595,8 +1597,11 @@
     }
   });
 
-  async function loadAchievements() {
+  async function loadAchievements(stick) {
     var list = $('achievements-list'); if (!list) return;
+    // En la actualización automática no se debe arrastrar al usuario al final
+    // si está leyendo logros viejos: solo se baja si ya estaba cerca del final.
+    var distBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
     try {
       var data = await api('/api/achievements');
       if (!data.achievements.length) { list.innerHTML = '<p class="chat-empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
@@ -1641,7 +1646,8 @@
           + ((isAdminUser || mine) ? '<button type="button" data-ach-del="' + a.id + '">Borrar</button>' : '')
           + '</div></div>';
       }).join('');
-      list.scrollTop = list.scrollHeight;
+      if (stick !== false || distBottom < 120) list.scrollTop = list.scrollHeight;
+      else list.scrollTop = list.scrollHeight - list.clientHeight - distBottom;
       list.querySelectorAll('[data-ach-del]').forEach(function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('¿Borrar este logro?')) return;
