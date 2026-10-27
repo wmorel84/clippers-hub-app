@@ -39,7 +39,7 @@
   /* ---------------- Navegación ---------------- */
   var pageTitles = {
     campanas: 'Campañas', 'mis-clips': 'Mis clips', cuentas: 'Mis cuentas', billetera: 'Billetera',
-    referidos: 'Referidos', cursos: 'Cursos', chat: 'Chat', admin: 'Gestión'
+    referidos: 'Referidos', cursos: 'Cursos', chat: 'Chat', noticias: 'Noticias', logros: 'Logros', admin: 'Gestión'
   };
 
   function goTo(page) {
@@ -54,9 +54,11 @@
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
     if (page === 'billetera') loadWallet();
-    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); loadBlockedWords(); }
+    if (page === 'admin') { loadAdminTable(); loadAdminAccounts(); loadAdminWallet(); loadAdminClips(); loadBlockedWords(); loadAdminPrefs(); }
     if (page === 'chat') enterChat();
     if (page === 'cursos') loadCourseHome();
+    if (page === 'noticias') loadNews();
+    if (page === 'logros') loadAchievements();
     window.scrollTo(0, 0);
   }
 
@@ -1460,6 +1462,115 @@
       updateLessonDoneBtn();
     } catch (e) { alert(e.message); }
   });
+
+  /* ---------------- Noticias ---------------- */
+  async function loadNews() {
+    var list = $('news-list'); if (!list) return;
+    $('news-admin-form').hidden = !(state.user && state.user.role === 'admin');
+    var sel = $('news-campaign');
+    if (sel && state.campaigns) {
+      sel.innerHTML = '<option value="">Sin campaña</option>' + state.campaigns.map(function (c) {
+        return '<option value="' + c.id + '">' + esc(c.title) + '</option>';
+      }).join('');
+    }
+    try {
+      var data = await api('/api/news');
+      if (!data.news.length) { list.innerHTML = '<p class="empty">Aún no hay noticias.</p>'; return; }
+      list.innerHTML = data.news.map(function (n) {
+        return '<article class="panel-card" style="max-width:none">'
+          + (n.image_url ? '<img src="' + esc(n.image_url) + '" alt="" style="max-width:100%;border-radius:10px;margin-bottom:10px" loading="lazy">' : '')
+          + '<h3 style="margin:0 0 6px">' + esc(n.title) + '</h3>'
+          + '<p style="color:var(--muted);font-size:.85rem;margin:0 0 8px">' + fmtDateTime(n.created_at) + (n.author_name ? ' · ' + esc(n.author_name) : '') + '</p>'
+          + '<p style="white-space:pre-wrap">' + esc(n.body) + '</p>'
+          + (n.campaign_id ? '<p><a href="/campana/' + n.campaign_id + '">Ver campaña: ' + esc(n.campaign_title || '') + ' ↗</a></p>' : '')
+          + ((state.user && state.user.role === 'admin') ? '<button class="btn small ghost" type="button" data-news-del="' + n.id + '">Borrar</button>' : '')
+          + '</article>';
+      }).join('');
+      list.querySelectorAll('[data-news-del]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('¿Borrar esta noticia?')) return;
+          await api('/api/news/' + b.getAttribute('data-news-del'), { method: 'DELETE' });
+          loadNews();
+        });
+      });
+    } catch (e) { list.innerHTML = '<p class="empty">No se pudieron cargar las noticias.</p>'; }
+  }
+
+  var newsPublishBtn = $('news-publish');
+  if (newsPublishBtn) newsPublishBtn.addEventListener('click', async function () {
+    var msg = $('news-msg'); msg.textContent = '';
+    try {
+      await api('/api/news', { method: 'POST', body: JSON.stringify({
+        title: $('news-title').value, body: $('news-body').value,
+        image_url: $('news-image').value, campaign_id: $('news-campaign').value || null
+      }) });
+      $('news-title').value = ''; $('news-body').value = ''; $('news-image').value = ''; $('news-campaign').value = '';
+      msg.textContent = 'Noticia publicada y avisada a todos.';
+      loadNews();
+    } catch (e) { msg.textContent = e.message; }
+  });
+
+  /* ---------------- Logros ---------------- */
+  async function loadAchievements() {
+    var list = $('achievements-list'); if (!list) return;
+    try {
+      var data = await api('/api/achievements');
+      if (!data.achievements.length) { list.innerHTML = '<p class="empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
+      list.innerHTML = data.achievements.map(function (a) {
+        return '<article class="panel-card" style="max-width:none">'
+          + '<h3 style="margin:0 0 6px">' + esc(a.title) + '</h3>'
+          + '<p style="color:var(--muted);font-size:.85rem;margin:0 0 8px">' + esc(a.author_name) + ' · ' + fmtDateTime(a.created_at) + '</p>'
+          + (a.body ? '<p style="white-space:pre-wrap">' + esc(a.body) + '</p>' : '')
+          + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="Captura del logro" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
+          + ((state.user && (state.user.role === 'admin' || state.user.id === a.user_id)) ? '<div style="margin-top:10px"><button class="btn small ghost" type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
+          + '</article>';
+      }).join('');
+      list.querySelectorAll('[data-ach-del]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('¿Borrar este logro?')) return;
+          await api('/api/achievements/' + b.getAttribute('data-ach-del'), { method: 'DELETE' });
+          loadAchievements();
+        });
+      });
+    } catch (e) { list.innerHTML = '<p class="empty">No se pudieron cargar los logros.</p>'; }
+  }
+
+  var achForm = $('achievement-form');
+  if (achForm) achForm.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var msg = $('achievement-msg'); msg.textContent = '';
+    var fd = new FormData();
+    fd.append('title', $('achievement-title').value);
+    fd.append('body', $('achievement-body').value);
+    var file = $('achievement-image').files[0];
+    if (file) fd.append('image', file);
+    try {
+      var res = await fetch('/api/achievements', { method: 'POST', body: fd });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.error || 'Error al publicar.');
+      achForm.reset(); msg.textContent = 'Logro publicado.';
+      loadAchievements();
+    } catch (e) { msg.textContent = e.message; }
+  });
+
+  /* ---------------- Avisos del admin ---------------- */
+  async function loadAdminPrefs() {
+    var list = $('admin-prefs-list'); if (!list || !state.user || state.user.role !== 'admin') return;
+    try {
+      var data = await api('/api/admin/notification-prefs');
+      list.innerHTML = data.prefs.map(function (p) {
+        return '<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-pref="' + p.key + '"' + (p.enabled ? ' checked' : '') + '> ' + esc(p.label) + '</label>';
+      }).join('');
+      list.querySelectorAll('[data-pref]').forEach(function (cb) {
+        cb.addEventListener('change', async function () {
+          try {
+            await api('/api/admin/notification-prefs', { method: 'PUT', body: JSON.stringify({ key: cb.getAttribute('data-pref'), enabled: cb.checked }) });
+            $('admin-prefs-msg').textContent = 'Guardado.';
+          } catch (e) { $('admin-prefs-msg').textContent = e.message; }
+        });
+      });
+    } catch (e) { /* solo admin */ }
+  }
 
   /* ---------------- Init ---------------- */
   // Enlace desde la página del brief: /?submit=<id de campaña>

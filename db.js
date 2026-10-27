@@ -53,6 +53,34 @@ function initSchema() {
       is_read INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    -- Noticias del canal (solo el admin publica; al publicar avisa a todos).
+    CREATE TABLE IF NOT EXISTS news_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL,
+      image_url TEXT NOT NULL DEFAULT '',
+      author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    -- Logros de los clippers: se publican al instante; el autor o el admin
+    -- pueden borrarlos. La captura vive en el volumen persistente (/data).
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      image_path TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    -- Interruptores de avisos del admin (por defecto todo activado; sin fila
+    -- = activado). Claves: new_user, user_login, course_done, chat.
+    CREATE TABLE IF NOT EXISTS admin_notification_prefs (
+      admin_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      pref_key TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY (admin_id, pref_key)
+    );
     -- Cuentas sociales de los clippers para vincular en las plataformas.
     -- Estados: pending (clipper registró el link) → code_sent (Wilson envió el
     -- código de la bio) → code_confirmed (clipper pegó el código) → verified

@@ -3,6 +3,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { notifyAdmins } = require('../lib/notify');
 const { COURSE } = require('../content/course');
 
 const router = express.Router();
@@ -62,6 +63,12 @@ router.post('/lessons/:id/toggle', requireAuth, (req, res) => {
     db.prepare('INSERT INTO course_progress (user_id, lesson_id) VALUES (?, ?)').run(uid, l.id);
   }
   const done = doneSet(uid);
+  // Curso terminado = todas las lecciones visibles marcadas (solo al completar,
+  // no al desmarcar). Se avisa una vez por transición a completo.
+  if (!exists && done.size === LESSONS.length) {
+    const u = db.prepare('SELECT name, email FROM users WHERE id = ?').get(uid);
+    if (u) notifyAdmins('Curso terminado: ' + u.name, u.email + ' completó la academia.', 'course_done');
+  }
   res.json({ done: done.has(l.id), progress: { done: done.size, total: LESSONS.length } });
 });
 

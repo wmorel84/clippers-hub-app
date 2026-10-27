@@ -5,6 +5,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { notifyAdmins } = require('../lib/notify');
 
 const router = express.Router();
 
@@ -148,6 +149,12 @@ router.post('/messages', requireAuth, (req, res) => {
       'INSERT INTO chat_messages (user_id, body, reply_to_id, reply_body, reply_author) VALUES (?, ?, ?, ?, ?)'
     )
     .run(req.session.userId, body, reply ? rid : null, reply ? reply.body.slice(0, 140) : '', reply ? reply.author : '');
+  // Aviso al admin por mensaje en la comunidad (no por sus propios mensajes;
+  // se puede mutear desde Gestión sin apagar los demás avisos).
+  if (!isAdmin(me(req))) {
+    const author = me(req);
+    notifyAdmins('Nuevo mensaje en la comunidad', (author ? author.name : 'Un clipper') + ': ' + body.slice(0, 140), 'chat');
+  }
   const row = db.prepare(`${ROOM_SQL} WHERE m.id = ?`).get(info.lastInsertRowid);
   res.status(201).json({ message: shapeRoom([row], req.session.userId)[0] });
 });

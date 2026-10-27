@@ -15,6 +15,8 @@ const adminRoutes = require('./routes/admin');
 const chatRoutes = require('./routes/chat');
 const courseRoutes = require('./routes/courses');
 const pushRoutes = require('./routes/push');
+const newsRoutes = require('./routes/news');
+const achievementRoutes = require('./routes/achievements');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -57,6 +59,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/achievements', achievementRoutes);
 
 // ---------- Puerta de la app (decisión de Wilson, 21 oct 2026) ----------
 // Sin sesión, lo primero que se ve es la pantalla de acceso partida

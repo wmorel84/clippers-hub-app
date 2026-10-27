@@ -8,6 +8,21 @@ const { requireAdmin } = require('../middleware/auth');
 const { db } = require('../db');
 
 const router = express.Router();
+const { adminPrefs, setAdminPref } = require('../lib/notify');
+
+// Avisos del admin: qué te llega y qué tienes muteado (por defecto todo on).
+router.get('/notification-prefs', requireAdmin, (req, res) => {
+  res.json({ prefs: adminPrefs(req.session.userId) });
+});
+
+router.put('/notification-prefs', requireAdmin, (req, res) => {
+  try {
+    setAdminPref(req.session.userId, req.body.key, req.body.enabled === true || req.body.enabled === 1);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  res.json({ prefs: adminPrefs(req.session.userId) });
+});
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'hub.db');
 const EXPECTED_TABLES = ['users', 'campaigns', 'clips', 'notifications'];

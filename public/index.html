@@ -70,6 +70,14 @@
           Chat
           <span class="sb-badge" id="chat-nav-badge" hidden></span>
         </button>
+        <button class="sb-item" type="button" data-page-target="noticias">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg>
+          Noticias
+        </button>
+        <button class="sb-item" type="button" data-page-target="logros">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a2 2 0 0 0 0 4h3M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+          Logros
+        </button>
         <div class="sb-admin" id="sb-admin-nav" hidden>
           <div class="sb-section-label" role="presentation">ADMIN</div>
           <button class="sb-item" type="button" data-page-target="admin">
@@ -219,6 +227,42 @@
         </div>
       </section>
 
+      <!-- NOTICIAS -->
+      <section class="app-page" data-page="noticias" id="page-noticias" hidden>
+        <div class="hero"><h1><em>Noticias.</em></h1><p>Lanzamientos de campañas, promociones y anuncios del canal.</p></div>
+        <div class="panel-card" id="news-admin-form" hidden>
+          <h3>Publicar noticia (solo admin)</h3>
+          <p style="color:var(--muted)">Al publicar, todos los clippers reciben el aviso en su campanita y en su celular si tienen los avisos activados.</p>
+          <div class="form-grid">
+            <div class="field"><label for="news-title">Título *</label><input id="news-title" /></div>
+            <div class="field"><label for="news-campaign">Enlazar campaña (opcional)</label><select id="news-campaign"><option value="">Sin campaña</option></select></div>
+            <div class="field"><label for="news-image">Imagen (URL, opcional)</label><input id="news-image" placeholder="https://…" /></div>
+            <div class="field"><label for="news-body">Texto</label><textarea id="news-body" rows="4"></textarea></div>
+          </div>
+          <div class="row-actions" style="margin-top:10px"><button class="btn small accent" id="news-publish" type="button">Publicar noticia</button></div>
+          <p id="news-msg" style="color:var(--muted)"></p>
+        </div>
+        <div id="news-list" style="display:grid;gap:16px;margin-top:16px"></div>
+      </section>
+
+      <!-- LOGROS -->
+      <section class="app-page" data-page="logros" id="page-logros" hidden>
+        <div class="hero"><h1><em>Logros.</em></h1><p>Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas. Se publica al instante.</p></div>
+        <div class="panel-card">
+          <h3>Publicar un logro</h3>
+          <form id="achievement-form">
+            <div class="form-grid">
+              <div class="field"><label for="achievement-title">Título *</label><input id="achievement-title" required /></div>
+              <div class="field"><label for="achievement-body">Cuéntalo (opcional)</label><textarea id="achievement-body" rows="3"></textarea></div>
+              <div class="field"><label for="achievement-image">Captura de pantalla (opcional, máx. 3 MB)</label><input id="achievement-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div>
+            </div>
+            <div class="row-actions" style="margin-top:10px"><button class="btn small accent" type="submit">Publicar logro</button></div>
+            <p id="achievement-msg" style="color:var(--muted)"></p>
+          </form>
+        </div>
+        <div id="achievements-list" style="display:grid;gap:16px;margin-top:16px"></div>
+      </section>
+
       <!-- ADMIN -->
       <section class="app-page" data-page="admin" id="page-admin" hidden>
         <div class="hero"><h1>Gestión de <em>campañas.</em></h1><p>Solo visible para administradores.</p></div>
@@ -302,6 +346,12 @@
           </div>
           <div id="blocked-words-list" style="margin-top:10px"></div>
           <p id="blocked-words-msg" style="margin-top:8px;color:var(--muted)"></p>
+        </div>
+        <div class="panel-card" style="max-width:none;margin-top:24px">
+          <h3>Mis avisos de admin</h3>
+          <p style="color:var(--muted)">Elige qué avisos te llegan. El de chat se puede mutear aquí sin apagar los demás.</p>
+          <div id="admin-prefs-list" style="display:grid;gap:10px"></div>
+          <p id="admin-prefs-msg" style="color:var(--muted)"></p>
         </div>
         <div class="panel-card" style="max-width:none;margin-top:24px">
           <h3>Respaldo de la base de datos</h3>

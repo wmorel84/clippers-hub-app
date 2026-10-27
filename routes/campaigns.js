@@ -2,6 +2,19 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { notifyAll } = require('../lib/notify');
+
+// REGLA (Wilson, 27 oct 2026): cada campaña nueva crea UNA noticia en el
+// Panel, para que todos la vean y reciban el aviso. Aplica al crear a mano
+// y a cada campaña nueva de una importación.
+function publishLaunchNews(adminId, title) {
+  const newsTitle = 'Nueva campaña: ' + title;
+  const body = 'Ya está disponible en Clippers Pro. Léela en Campañas y crea tu clip.';
+  try {
+    db.prepare('INSERT INTO news_posts (title, body, author_id) VALUES (?, ?, ?)').run(newsTitle, body, adminId || null);
+  } catch (e) { /* la campaña ya quedó creada; la noticia se puede publicar a mano */ }
+  notifyAll('📰 ' + newsTitle, body);
+}
 
 const router = express.Router();
 
@@ -293,6 +306,7 @@ router.post('/', requireAdmin, (req, res) => {
   catch (e) { return res.status(400).json({ error: e.message }); }
   const id = insertCampaign(c);
   fillImageAsync(id);
+  if (c.status === 'active' && !c.is_example) publishLaunchNews(req.session.userId, c.title);
   const row = db.prepare(`SELECT ${ADMIN_FIELDS} FROM campaigns WHERE id = ?`).get(id);
   res.status(201).json({ campaign: toAdminCampaign(row) });
 });
@@ -312,7 +326,10 @@ router.post('/admin/import', requireAdmin, (req, res) => {
       const c = sanitizeCampaign(b);
       const ex = find.get(c.title);
       if (ex) { updateCampaign(ex.id, c); updated++; fillImageAsync(ex.id); }
-      else { const nid = insertCampaign(c); inserted++; fillImageAsync(nid); }
+      else {
+        const nid = insertCampaign(c); inserted++; fillImageAsync(nid);
+        if (c.status === 'active' && !c.is_example) publishLaunchNews(req.session.userId, c.title);
+      }
     } catch (e) {
       errors.push({ title: (b && b.title) || '(sin título)', error: e.message });
     }

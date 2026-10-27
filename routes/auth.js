@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { db, seedUserNotifications } = require('../db');
+const { notifyAdmins } = require('../lib/notify');
 
 const router = express.Router();
 const BCRYPT_COST = 12;
@@ -34,6 +35,7 @@ router.post('/register', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
 
   seedUserNotifications(user.id);
+  notifyAdmins('Usuario nuevo: ' + user.name, user.email, 'new_user');
 
   req.session.userId = user.id;
   req.session.role = user.role;
@@ -54,6 +56,7 @@ router.post('/login', (req, res) => {
 
   req.session.userId = user.id;
   req.session.role = user.role;
+  notifyAdmins('Usuario entró: ' + user.name, user.email, 'user_login');
   return res.json({ user: publicUser(user) });
 });
 
@@ -112,6 +115,7 @@ router.post('/google', async (req, res) => {
     }
 
     // 3) Si no existe, se crea la cuenta de clipper.
+    let isNew = false;
     if (!user) {
       const name = String(p.name || email.split('@')[0]).slice(0, 100);
       // Hash aleatorio inutilizable: esta cuenta entra solo con Google.
@@ -121,10 +125,13 @@ router.post('/google', async (req, res) => {
         .run(name, email, fakeHash, p.sub);
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
       seedUserNotifications(user.id);
+      isNew = true;
     }
 
     req.session.userId = user.id;
     req.session.role = user.role;
+    if (isNew) notifyAdmins('Usuario nuevo: ' + user.name, user.email, 'new_user');
+    else notifyAdmins('Usuario entró: ' + user.name, user.email, 'user_login');
     return res.json({ user: publicUser(user) });
   } catch (e) {
     return res.status(401).json({ error: 'No se pudo verificar tu cuenta de Google.' });
