@@ -232,9 +232,10 @@
     var area = $('auth-area');
     if (user) {
       var initial = esc((user.name || user.email || '?').charAt(0).toUpperCase());
-      area.innerHTML = '<div class="user-chip"><span class="avatar">' + initial + '</span>' +
-        '<span>' + esc(user.name) + '</span>' +
+      area.innerHTML = '<div class="user-chip"><button class="user-chip-btn" id="profile-open" type="button" title="Mi perfil"><span class="avatar">' + initial + '</span>' +
+        '<span>' + esc(user.name) + '</span></button>' +
         '<button class="link-btn" id="logout-btn" type="button">Cerrar sesión</button></div>';
+      $('profile-open').addEventListener('click', openProfile);
       $('logout-btn').addEventListener('click', async function () {
         await api('/api/auth/logout', { method: 'POST' }).catch(function () {});
         setUser(null);
@@ -1595,6 +1596,43 @@
       });
     } catch (e) { /* solo admin */ }
   }
+
+  /* ---------------- Mi perfil ---------------- */
+  function openProfile() {
+    if (!state.user) return;
+    $('profile-name').value = state.user.name || '';
+    $('profile-email').value = state.user.email || '';
+    $('profile-current-password').value = '';
+    $('profile-new-password').value = '';
+    $('profile-msg').textContent = '';
+    $('profile-dialog').showModal();
+  }
+
+  $('profile-close').addEventListener('click', function () { $('profile-dialog').close(); });
+  $('profile-save-name').addEventListener('click', async function () {
+    var msg = $('profile-msg'); msg.textContent = '';
+    try {
+      var data = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify({ name: $('profile-name').value }) });
+      state.user = data.user;
+      setUser(data.user);
+      msg.textContent = 'Nombre guardado.';
+    } catch (e) { msg.textContent = e.message; }
+  });
+  $('profile-save-password').addEventListener('click', async function () {
+    var msg = $('profile-msg'); msg.textContent = '';
+    try {
+      await api('/api/auth/password', { method: 'PUT', body: JSON.stringify({
+        current_password: $('profile-current-password').value, new_password: $('profile-new-password').value
+      }) });
+      $('profile-current-password').value = ''; $('profile-new-password').value = '';
+      msg.textContent = 'Contraseña cambiada.';
+    } catch (e) { msg.textContent = e.message; }
+  });
+  $('profile-goto-notifications').addEventListener('click', function () {
+    $('profile-dialog').close();
+    var toggle = $('notifications-toggle');
+    if (toggle) toggle.click();
+  });
 
   /* ---------------- Init ---------------- */
   // Enlace desde la página del brief: /?submit=<id de campaña>

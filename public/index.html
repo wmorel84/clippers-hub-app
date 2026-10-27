@@ -367,6 +367,30 @@
 
   <!-- Detalle de campaña -->
 
+  <!-- Mi perfil: se abre tocando el nombre arriba a la derecha -->
+  <dialog id="profile-dialog" aria-labelledby="profile-title">
+    <div class="dialog-body">
+      <button class="close" id="profile-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <h2 id="profile-title">Mi perfil</h2>
+      <div class="form-grid">
+        <div class="field"><label for="profile-name">Nombre de usuario / nick</label><input id="profile-name" /></div>
+        <div class="field"><label for="profile-email">Correo (no se puede cambiar)</label><input id="profile-email" readonly /></div>
+      </div>
+      <div class="row-actions" style="margin-top:10px"><button class="btn small accent" id="profile-save-name" type="button">Guardar nombre</button></div>
+      <h3 style="margin-top:24px">Cambiar contraseña</h3>
+      <p style="color:var(--muted)">Si tu cuenta entra solo con Google, este cambio no aplica: no tienes contraseña actual.</p>
+      <div class="form-grid">
+        <div class="field"><label for="profile-current-password">Contraseña actual</label><input id="profile-current-password" type="password" autocomplete="current-password" /></div>
+        <div class="field"><label for="profile-new-password">Contraseña nueva (mín. 8 caracteres)</label><input id="profile-new-password" type="password" autocomplete="new-password" /></div>
+      </div>
+      <div class="row-actions" style="margin-top:10px"><button class="btn small accent" id="profile-save-password" type="button">Cambiar contraseña</button></div>
+      <h3 style="margin-top:24px">Avisos en este celular</h3>
+      <p style="color:var(--muted)">Los avisos se activan por celular, desde la campanita.</p>
+      <div class="row-actions"><button class="btn small" id="profile-goto-notifications" type="button">🔔 Ir a mis avisos</button></div>
+      <p id="profile-msg" style="color:var(--muted)"></p>
+    </div>
+  </dialog>
+
   <!-- Enviar un clip -->
   <dialog id="submit-dialog" aria-labelledby="submit-title">
     <div class="dialog-body">

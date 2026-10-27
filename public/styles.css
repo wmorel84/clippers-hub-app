@@ -99,6 +99,7 @@ h1, h2, h3 { font-family: "Archivo", sans-serif; font-weight: 800; letter-spacin
 }
 .bell-dot[hidden] { display: none; }
 .user-chip { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+.user-chip-btn { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
 .user-chip .avatar {
   width: 34px; height: 34px; border-radius: 99px; background: var(--accent); color: var(--accent-ink);
   display: grid; place-items: center; font-weight: 800;

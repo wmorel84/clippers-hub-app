@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { db, seedUserNotifications } = require('../db');
 const { notifyAdmins } = require('../lib/notify');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const BCRYPT_COST = 12;
@@ -75,6 +76,31 @@ router.get('/me', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
   if (!user) return res.status(401).json({ error: 'Sesión no válida.' });
   return res.json({ user: publicUser(user) });
+});
+
+// PUT /api/auth/profile — cambiar el nombre visible (nick). Ese nombre es el
+// que se ve arriba, en el chat y en Logros, porque es el mismo campo.
+router.put('/profile', requireAuth, (req, res) => {
+  const name = String(req.body.name || '').trim().slice(0, 100);
+  if (name.length < 2) return res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres.' });
+  db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, req.session.userId);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  res.json({ user: publicUser(user) });
+});
+
+// PUT /api/auth/password — cambiar contraseña (pide la actual). Las cuentas
+// que entran solo con Google no tienen contraseña actual que poner, así que
+// este cambio no les aplica: la verificación de la actual fallará.
+router.put('/password', requireAuth, (req, res) => {
+  const current = req.body.current_password || '';
+  const next = req.body.new_password || '';
+  if (next.length < 8) return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 8 caracteres.' });
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  if (!user || !bcrypt.compareSync(current, user.password_hash)) {
+    return res.status(401).json({ error: 'La contraseña actual no es correcta.' });
+  }
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(next, BCRYPT_COST), req.session.userId);
+  res.json({ ok: true });
 });
 
 // GET /api/auth/google-client-id — el ID de cliente es público (va en el frontend)
