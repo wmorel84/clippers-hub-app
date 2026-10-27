@@ -58,7 +58,7 @@
     $('current-page-title').textContent = pageTitles[page] || 'Campañas';
     $('current-page-subtitle').textContent = pageSubtitles[page] || '';
     // En Chat, las pestañas van en la barra superior, debajo de la palabra
-    // Chat, y el subtítulo queda a su derecha, en la misma línea.
+    // Chat, y el subtítulo queda debajo de ellas, para que nada se apriete.
     var row = $('topbar-chat-row');
     var subtitle = $('current-page-subtitle');
     if (page === 'chat') {
