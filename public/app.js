@@ -1102,6 +1102,14 @@
     return esc(text).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
 
+  // Video externo: el link siempre queda clicable; si es de YouTube, además
+  // se incrusta el reproductor. TikTok/Instagram/Drive quedan como enlace.
+  function youtubeEmbed(text) {
+    var m = String(text || '').match(/(?:youtube\.com\/watch\?[^ \s]*v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    if (!m) return '';
+    return '<div style="margin-top:8px"><iframe width="100%" height="220" src="https://www.youtube.com/embed/' + m[1] + '" frameborder="0" allowfullscreen></iframe></div>';
+  }
+
   function reactionsHtml(m, scope) {
     if (!m.reactions || !m.reactions.length) return '';
     return '<div class="msg-reactions">' + m.reactions.map(function (r) {
@@ -1130,7 +1138,8 @@
       + (m.is_admin ? '<span class="admin-chip">Admin</span>' : '')
       + '<span class="msg-time">' + chatTime(m.created_at) + '</span></div>'
       + quote
-      + '<div class="msg-body">' + linkify(m.body) + '</div>'
+      + '<div class="msg-body">' + linkify(m.body) + youtubeEmbed(m.body) + '</div>'
+      + (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="Imagen del mensaje" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
       + reactionsHtml(m, scope)
       + picker
       + '<div class="msg-actions">'
@@ -1278,16 +1287,22 @@
 
   async function sendChat(scope) {
     var input = $(scope === 'room' ? 'chat-input' : 'dm-input');
+    var fileInput = $(scope === 'room' ? 'chat-image' : 'dm-image');
     var body = input.value.trim();
-    if (!body) return;
+    var file = fileInput && fileInput.files[0];
+    if (!body && !file) return;
     var t = replyTarget[scope];
     try {
       var path = scope === 'room' ? '/api/chat/messages' : '/api/chat/dm/' + (dmClipperId || 0);
-      var data = await api(path, {
-        method: 'POST',
-        body: JSON.stringify({ body: body, reply_to_id: t ? t.id : null })
-      });
+      var fd = new FormData();
+      fd.append('body', body);
+      if (t) fd.append('reply_to_id', t.id);
+      if (file) fd.append('image', file);
+      var res = await fetch(path, { method: 'POST', body: fd });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.error || 'Error al enviar.');
       input.value = '';
+      if (fileInput) fileInput.value = '';
       replyTarget[scope] = null; setReplyBar(scope);
       if (scope === 'room') {
         roomHash = '';
@@ -1517,9 +1532,11 @@
       var data = await api('/api/achievements');
       if (!data.achievements.length) { list.innerHTML = '<p class="empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
       list.innerHTML = data.achievements.map(function (a) {
+        // Estilo chat: autor y hora arriba, texto, imagen debajo. Los logros
+        // viejos traen título: queda como primera línea en negrita.
         return '<article class="panel-card" style="max-width:none">'
-          + '<h3 style="margin:0 0 6px">' + esc(a.title) + '</h3>'
-          + '<p style="color:var(--muted);font-size:.85rem;margin:0 0 8px">' + esc(a.author_name) + ' · ' + fmtDateTime(a.created_at) + '</p>'
+          + '<p style="color:var(--muted);font-size:.85rem;margin:0 0 8px"><strong style="color:var(--text)">' + esc(a.author_name) + '</strong> · ' + fmtDateTime(a.created_at) + '</p>'
+          + (a.title ? '<p style="white-space:pre-wrap;margin:0 0 6px"><strong>' + esc(a.title) + '</strong></p>' : '')
           + (a.body ? '<p style="white-space:pre-wrap">' + esc(a.body) + '</p>' : '')
           + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="Captura del logro" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
           + ((state.user && (state.user.role === 'admin' || state.user.id === a.user_id)) ? '<div style="margin-top:10px"><button class="btn small ghost" type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
@@ -1540,7 +1557,7 @@
     ev.preventDefault();
     var msg = $('achievement-msg'); msg.textContent = '';
     var fd = new FormData();
-    fd.append('title', $('achievement-title').value);
+    fd.append('title', '');
     fd.append('body', $('achievement-body').value);
     var file = $('achievement-image').files[0];
     if (file) fd.append('image', file);

@@ -2,10 +2,16 @@
 // Comunidad: sala única para todos los usuarios con sesión.
 // Privados: cada clipper tiene UNA conversación con el equipo (admin);
 // cualquier admin la atiende. Incluye respuestas (cita) y reacciones.
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { notifyAdmins } = require('../lib/notify');
+const { normalizeWord, blockedWords, containsBlockedWord, cleanBlockedWord } = require('../lib/blocked');
+const { uploadsDir, imageUpload, deleteUpload } = require('../lib/uploads');
+
+const chatUpload = imageUpload('chat');
 
 const router = express.Router();
 
@@ -22,30 +28,10 @@ function cleanBody(b) {
   return s ? s.slice(0, MAX_BODY) : '';
 }
 
-// Palabras restringidas (solo comunidad, oct 2026): se comparan palabras
-// completas, sin importar mayúsculas ni acentos. El aviso al autor es
-// genérico a propósito: nunca revela cuál palabra coincidió.
-function normalizeWord(s) {
-  return String(s || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
-function blockedWords() {
-  return db
-    .prepare('SELECT word FROM chat_blocked_words ORDER BY word')
-    .all()
-    .map((r) => r.word);
-}
-function containsBlockedWord(body) {
-  const words = blockedWords();
-  if (!words.length) return false;
-  const tokens = new Set(normalizeWord(body).split(/[^a-z0-9]+/).filter(Boolean));
-  return words.some((w) => tokens.has(w));
-}
-function cleanBlockedWord(w) {
-  return normalizeWord(w).replace(/[^a-z0-9]/g, '');
-}
+// Palabras restringidas: solo comunidad (el privado con el admin NO tiene
+// filtro, decisión de Wilson). El aviso al autor es genérico a propósito:
+// nunca revela cuál palabra coincidió. La lógica vive en lib/blocked.js
+// porque Logros usa el mismo filtro.
 
 // Reacciones agrupadas por mensaje: { msgId: [{emoji, count, mine}] }
 function reactionsFor(scope, ids, myId) {
@@ -81,6 +67,7 @@ function shapeRoom(rows, myId) {
     reply_body: r.reply_body,
     reply_author: r.reply_author,
     reactions: rx[r.id] || [],
+    image_url: r.image_path ? '/api/chat/image/room/' + r.id : '',
     created_at: r.created_at,
   }));
 }
@@ -101,6 +88,17 @@ router.get('/messages', requireAuth, (req, res) => {
     pinned: pinnedRow ? shapeRoom([pinnedRow], req.session.userId)[0] : null,
     emojis: EMOJIS,
   });
+});
+
+// GET /api/chat/image/:scope/:id — la imagen de un mensaje, solo con sesión
+router.get('/image/:scope/:id', requireAuth, (req, res) => {
+  const scope = req.params.scope === 'dm' ? 'dm' : 'room';
+  const table = scope === 'dm' ? 'dm_messages' : 'chat_messages';
+  const row = db.prepare(`SELECT image_path FROM ${table} WHERE id = ?`).get(Number(req.params.id));
+  if (!row || !row.image_path) return res.status(404).json({ error: 'Imagen no encontrada.' });
+  const full = path.join(uploadsDir('chat'), path.basename(row.image_path));
+  if (!fs.existsSync(full)) return res.status(404).json({ error: 'Imagen no encontrada.' });
+  res.sendFile(full);
 });
 
 // GET /api/chat/blocked-words — solo admin: la lista (nunca se muestra a clippers)
@@ -125,38 +123,46 @@ router.delete('/blocked-words/:word', requireAuth, (req, res) => {
   res.json({ words: blockedWords() });
 });
 
-// POST /api/chat/messages — enviar a la comunidad
+// POST /api/chat/messages — enviar a la comunidad (texto, imagen o ambos)
 router.post('/messages', requireAuth, (req, res) => {
-  const body = cleanBody(req.body && req.body.body);
-  if (!body) return res.status(400).json({ error: 'Escribe un mensaje.' });
-  // Filtro solo comunidad: el admin queda exento; los privados no se revisan.
-  // Si coincide, el mensaje NO se guarda y el aviso es solo "Este mensaje no
-  // se pudo enviar": no dice cuál palabra ni el motivo.
-  if (!isAdmin(me(req)) && containsBlockedWord(body)) {
-    return res.status(400).json({ error: 'Este mensaje no se pudo enviar' });
-  }
-  let reply = null;
-  const rid = Number(req.body && req.body.reply_to_id) || null;
-  if (rid) {
-    reply = db
-      .prepare(
-        `SELECT m.body, u.name AS author FROM chat_messages m JOIN users u ON u.id = m.user_id WHERE m.id = ?`
-      )
-      .get(rid);
-  }
-  const info = db
-    .prepare(
-      'INSERT INTO chat_messages (user_id, body, reply_to_id, reply_body, reply_author) VALUES (?, ?, ?, ?, ?)'
-    )
-    .run(req.session.userId, body, reply ? rid : null, reply ? reply.body.slice(0, 140) : '', reply ? reply.author : '');
-  // Aviso al admin por mensaje en la comunidad (no por sus propios mensajes;
-  // se puede mutear desde Gestión sin apagar los demás avisos).
-  if (!isAdmin(me(req))) {
+  chatUpload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'La imagen no puede pasar de 3 MB.' : err.message });
+    const body = cleanBody(req.body && req.body.body);
+    const file = req.file;
+    if (!body && !file) return res.status(400).json({ error: 'Escribe un mensaje o adjunta una imagen.' });
     const author = me(req);
-    notifyAdmins('Nuevo mensaje en la comunidad', (author ? author.name : 'Un clipper') + ': ' + body.slice(0, 140), 'chat');
-  }
-  const row = db.prepare(`${ROOM_SQL} WHERE m.id = ?`).get(info.lastInsertRowid);
-  res.status(201).json({ message: shapeRoom([row], req.session.userId)[0] });
+    // Filtro solo comunidad: el admin queda exento; los privados no se revisan.
+    // Se revisa el texto, los links dentro del texto y el nombre del archivo.
+    // Si coincide, el mensaje NO se guarda, la imagen se borra y el aviso es
+    // solo "Este mensaje no se pudo enviar": no dice cuál palabra ni el motivo.
+    // Al admin sí le llega un aviso de que se bloqueó un mensaje (sin la palabra).
+    if (!isAdmin(author) && (containsBlockedWord(body) || (file && containsBlockedWord(file.originalname)))) {
+      if (file) deleteUpload('chat', file.filename);
+      notifyAdmins('Mensaje bloqueado por palabras restringidas', (author ? author.name : 'Un clipper') + ' intentó enviar un mensaje en la comunidad que fue bloqueado por el filtro.');
+      return res.status(400).json({ error: 'Este mensaje no se pudo enviar' });
+    }
+    let reply = null;
+    const rid = Number(req.body && req.body.reply_to_id) || null;
+    if (rid) {
+      reply = db
+        .prepare(
+          `SELECT m.body, u.name AS author FROM chat_messages m JOIN users u ON u.id = m.user_id WHERE m.id = ?`
+        )
+        .get(rid);
+    }
+    const info = db
+      .prepare(
+        'INSERT INTO chat_messages (user_id, body, reply_to_id, reply_body, reply_author, image_path) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(req.session.userId, body, reply ? rid : null, reply ? reply.body.slice(0, 140) : '', reply ? reply.author : '', file ? file.filename : '');
+    // Aviso al admin por mensaje en la comunidad (no por sus propios mensajes;
+    // se puede mutear desde Gestión sin apagar los demás avisos).
+    if (!isAdmin(author)) {
+      notifyAdmins('Nuevo mensaje en la comunidad', (author ? author.name : 'Un clipper') + ': ' + (body ? body.slice(0, 140) : '📷 Imagen'), 'chat');
+    }
+    const row = db.prepare(`${ROOM_SQL} WHERE m.id = ?`).get(info.lastInsertRowid);
+    res.status(201).json({ message: shapeRoom([row], req.session.userId)[0] });
+  });
 });
 
 // DELETE /api/chat/messages/:id — autor o admin
@@ -167,6 +173,7 @@ router.delete('/messages/:id', requireAuth, (req, res) => {
   if (row.user_id !== u.id && !isAdmin(u)) return res.status(403).json({ error: 'Sin permiso.' });
   db.prepare('DELETE FROM chat_reactions WHERE scope = ? AND message_id = ?').run('room', row.id);
   db.prepare('DELETE FROM chat_messages WHERE id = ?').run(row.id);
+  deleteUpload('chat', row.image_path);
   res.json({ ok: true });
 });
 
@@ -260,6 +267,7 @@ function shapeDm(rows, myId) {
     reply_body: r.reply_body,
     reply_author: r.reply_author,
     reactions: rx[r.id] || [],
+    image_url: r.image_path ? '/api/chat/image/dm/' + r.id : '',
     created_at: r.created_at,
   }));
 }
@@ -304,35 +312,43 @@ router.get('/dm/:clipperId', requireAuth, (req, res) => {
   res.json({ messages: shapeDm(rows, u.id), clipper_id: clipperId, clipper_name: clipper ? clipper.name : '', emojis: EMOJIS });
 });
 
-// POST /api/chat/dm/:clipperId — enviar en la conversación
+// POST /api/chat/dm/:clipperId — enviar en la conversación (SIN filtro, como
+// siempre: el privado con el admin no tiene palabras restringidas).
 router.post('/dm/:clipperId', requireAuth, (req, res) => {
-  const u = me(req);
-  const clipperId = isAdmin(u) ? Number(req.params.clipperId) || 0 : u.id;
-  if (!clipperId) return res.status(400).json({ error: 'Conversación no válida.' });
-  const body = cleanBody(req.body && req.body.body);
-  if (!body) return res.status(400).json({ error: 'Escribe un mensaje.' });
-  let reply = null;
-  const rid = Number(req.body && req.body.reply_to_id) || null;
-  if (rid) {
-    reply = db
+  chatUpload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'La imagen no puede pasar de 3 MB.' : err.message });
+    const u = me(req);
+    const clipperId = isAdmin(u) ? Number(req.params.clipperId) || 0 : u.id;
+    if (!clipperId) {
+      if (req.file) deleteUpload('chat', req.file.filename);
+      return res.status(400).json({ error: 'Conversación no válida.' });
+    }
+    const body = cleanBody(req.body && req.body.body);
+    const file = req.file;
+    if (!body && !file) return res.status(400).json({ error: 'Escribe un mensaje o adjunta una imagen.' });
+    let reply = null;
+    const rid = Number(req.body && req.body.reply_to_id) || null;
+    if (rid) {
+      reply = db
+        .prepare(
+          `SELECT d.body, u.name AS author FROM dm_messages d JOIN users u ON u.id = d.sender_id WHERE d.id = ? AND d.clipper_id = ?`
+        )
+        .get(rid, clipperId);
+    }
+    const fromAdmin = isAdmin(u);
+    const info = db
       .prepare(
-        `SELECT d.body, u.name AS author FROM dm_messages d JOIN users u ON u.id = d.sender_id WHERE d.id = ? AND d.clipper_id = ?`
+        `INSERT INTO dm_messages (clipper_id, sender_id, body, reply_to_id, reply_body, reply_author, read_by_clipper, read_by_admin, image_path)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .get(rid, clipperId);
-  }
-  const fromAdmin = isAdmin(u);
-  const info = db
-    .prepare(
-      `INSERT INTO dm_messages (clipper_id, sender_id, body, reply_to_id, reply_body, reply_author, read_by_clipper, read_by_admin)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      clipperId, u.id, body, reply ? rid : null,
-      reply ? reply.body.slice(0, 140) : '', reply ? reply.author : '',
-      fromAdmin ? 0 : 1, fromAdmin ? 1 : 0
-    );
-  const row = db.prepare(`${DM_SQL} WHERE d.id = ?`).get(info.lastInsertRowid);
-  res.status(201).json({ message: shapeDm([row], u.id)[0] });
+      .run(
+        clipperId, u.id, body, reply ? rid : null,
+        reply ? reply.body.slice(0, 140) : '', reply ? reply.author : '',
+        fromAdmin ? 0 : 1, fromAdmin ? 1 : 0, file ? file.filename : ''
+      );
+    const row = db.prepare(`${DM_SQL} WHERE d.id = ?`).get(info.lastInsertRowid);
+    res.status(201).json({ message: shapeDm([row], u.id)[0] });
+  });
 });
 
 // DELETE /api/chat/dm/:id — autor o admin
@@ -343,6 +359,7 @@ router.delete('/dm/:id', requireAuth, (req, res) => {
   if (row.sender_id !== u.id && !isAdmin(u)) return res.status(403).json({ error: 'Sin permiso.' });
   db.prepare('DELETE FROM chat_reactions WHERE scope = ? AND message_id = ?').run('dm', row.id);
   db.prepare('DELETE FROM dm_messages WHERE id = ?').run(row.id);
+  deleteUpload('chat', row.image_path);
   res.json({ ok: true });
 });
 

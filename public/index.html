@@ -206,7 +206,8 @@
             <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-replybar" id="chat-replybar" hidden></div>
             <form class="chat-composer" id="chat-form">
-              <input id="chat-input" maxlength="500" placeholder="Escribe un mensaje a la comunidad…" autocomplete="off">
+              <input id="chat-input" maxlength="500" placeholder="Escribe un mensaje a la comunidad… (puedes pegar un link de video)" autocomplete="off">
+              <label class="btn small" style="cursor:pointer" title="Adjuntar imagen">📷<input id="chat-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label>
               <button class="btn accent" type="submit">Enviar</button>
             </form>
           </div>
@@ -219,7 +220,8 @@
             <div class="chat-messages" id="dm-messages"></div>
             <div class="chat-replybar" id="dm-replybar" hidden></div>
             <form class="chat-composer" id="dm-form">
-              <input id="dm-input" maxlength="500" placeholder="Escribe un mensaje…" autocomplete="off">
+              <input id="dm-input" maxlength="500" placeholder="Escribe un mensaje… (puedes pegar un link de video)" autocomplete="off">
+              <label class="btn small" style="cursor:pointer" title="Adjuntar imagen">📷<input id="dm-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label>
               <button class="btn accent" type="submit">Enviar</button>
             </form>
           </div>
@@ -250,10 +252,10 @@
         <div class="hero"><h1><em>Logros.</em></h1><p>Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas. Se publica al instante.</p></div>
         <div class="panel-card">
           <h3>Publicar un logro</h3>
+          <p style="color:var(--muted)">Como en el chat: escribe tu logro, adjunta tu captura si quieres, y se publica al instante.</p>
           <form id="achievement-form">
             <div class="form-grid">
-              <div class="field"><label for="achievement-title">Título *</label><input id="achievement-title" required /></div>
-              <div class="field"><label for="achievement-body">Cuéntalo (opcional)</label><textarea id="achievement-body" rows="3"></textarea></div>
+              <div class="field"><label for="achievement-body">Tu logro</label><textarea id="achievement-body" rows="3" placeholder="Ej.: ¡Mi clip llegó a 10.000 vistas!"></textarea></div>
               <div class="field"><label for="achievement-image">Captura de pantalla (opcional, máx. 3 MB)</label><input id="achievement-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div>
             </div>
             <div class="row-actions" style="margin-top:10px"><button class="btn small accent" type="submit">Publicar logro</button></div>

@@ -375,6 +375,17 @@ function migrateChatBlockedWords() {
 }
 migrateChat();
 migrateChatBlockedWords();
+// Imágenes en los chats (oct 2026): columna en ambas tablas; en bases ya
+// existentes se agrega sin tocar los mensajes guardados.
+function migrateChatMedia() {
+  for (const table of ['chat_messages', 'dm_messages']) {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+    if (!cols.includes('image_path')) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN image_path TEXT NOT NULL DEFAULT ''`);
+    }
+  }
+}
+migrateChatMedia();
 migrateCourse();
 seedCampaigns();
 

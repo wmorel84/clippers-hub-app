@@ -7,6 +7,8 @@ const express = require('express');
 const multer = require('multer');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { containsBlockedWord } = require('../lib/blocked');
+const { notifyAdmins } = require('../lib/notify');
 
 const router = express.Router();
 
@@ -54,9 +56,18 @@ router.post('/', requireAuth, (req, res) => {
     if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'La captura no puede pasar de 3 MB.' : err.message });
     const title = String(req.body.title || '').trim().slice(0, 200);
     const body = String(req.body.body || '').trim().slice(0, 2000);
-    if (!title) {
+    if (!title && !body && !req.file) {
+      return res.status(400).json({ error: 'Escribe tu logro o adjunta una imagen.' });
+    }
+    // Filtro de palabras restringidas, igual que en la comunidad: texto,
+    // links dentro del texto y nombre de la imagen. El admin queda exento.
+    // Si coincide, NO se publica y al autor solo le sale el aviso genérico;
+    // al admin sí le llega un aviso de que se bloqueó un logro.
+    if (req.session.role !== 'admin' && (containsBlockedWord(title + ' ' + body) || (req.file && containsBlockedWord(req.file.originalname)))) {
       if (req.file) fs.rmSync(req.file.path, { force: true });
-      return res.status(400).json({ error: 'El logro necesita un título.' });
+      const author = db.prepare('SELECT name FROM users WHERE id = ?').get(req.session.userId);
+      notifyAdmins('Logro bloqueado por palabras restringidas', (author ? author.name : 'Un clipper') + ' intentó publicar un logro que fue bloqueado por el filtro.');
+      return res.status(400).json({ error: 'Este mensaje no se pudo enviar' });
     }
     const info = db.prepare(
       'INSERT INTO achievements (user_id, title, body, image_path) VALUES (?, ?, ?, ?)'
