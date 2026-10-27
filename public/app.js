@@ -41,6 +41,12 @@
     campanas: 'Campañas', 'mis-clips': 'Mis clips', cuentas: 'Mis cuentas', billetera: 'Billetera',
     referidos: 'Referidos', cursos: 'Cursos', chat: 'Chat', noticias: 'Noticias', logros: 'Logros', admin: 'Gestión'
   };
+  // Subtítulos que antes iban como encabezado grande dentro de la página:
+  // ahora viven en la barra superior, y cambian con la sección.
+  var pageSubtitles = {
+    chat: 'La comunidad de Clippers Pro y tu línea directa con el equipo.',
+    logros: 'Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas.'
+  };
 
   function goTo(page) {
     document.querySelectorAll('.app-page').forEach(function (el) { el.hidden = true; });
@@ -50,6 +56,7 @@
       btn.classList.toggle('active', btn.getAttribute('data-page-target') === page);
     });
     $('current-page-title').textContent = pageTitles[page] || 'Campañas';
+    $('current-page-subtitle').textContent = pageSubtitles[page] || '';
     document.body.classList.remove('sidebar-open');
     if (page === 'mis-clips') loadClips();
     if (page === 'cuentas') loadAccounts();
@@ -1315,6 +1322,9 @@
         if (data && data.message) dmClipperId = dmClipperId || data.message.author_id;
         await loadDm(true);
       }
+      // La vista previa no debe quedar fija tras el envío: se vuelve a ocultar
+      // después de recargar, para que no reaparezca con el mensaje nuevo.
+      if (pv) pv.hidden = true;
     } catch (e) { alert(e.message); }
   }
   $('chat-form').addEventListener('submit', function (ev) { ev.preventDefault(); sendChat('room'); });
@@ -1578,6 +1588,7 @@
       achForm.reset(); msg.textContent = 'Logro publicado.';
       if ($('achievement-paste-preview')) $('achievement-paste-preview').hidden = true;
       loadAchievements();
+      if ($('achievement-paste-preview')) $('achievement-paste-preview').hidden = true;
     } catch (e) { msg.textContent = e.message; }
   });
 

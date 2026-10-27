@@ -92,7 +92,7 @@
 
   <div class="app-shell">
     <header class="app-topbar">
-      <div class="topbar-page"><span>Panel de clippers</span><strong id="current-page-title">Campañas</strong></div>
+      <div class="topbar-page"><span>Panel de clippers</span><strong id="current-page-title">Campañas</strong><span id="current-page-subtitle"></span></div>
       <button class="top-action" id="notifications-toggle" type="button" aria-label="Ver notificaciones" aria-expanded="false" aria-controls="notifications-panel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
         <span class="bell-dot" id="bell-dot" hidden>0</span>
@@ -194,7 +194,6 @@
 
       <!-- CHAT -->
       <section class="app-page" data-page="chat" id="page-chat" hidden>
-        <div class="hero"><h1><em>Chat.</em></h1><p>La comunidad de Clippers Pro y tu línea directa con el equipo.</p></div>
         <div class="chat-tabs">
           <button class="chat-tab is-active" id="chat-tab-room" type="button">Comunidad</button>
           <button class="chat-tab" id="chat-tab-dm" type="button"><span id="chat-dm-label">Privado con el equipo</span> <span class="chat-tab-badge" id="chat-dm-badge" hidden></span></button>
@@ -251,7 +250,6 @@
 
       <!-- LOGROS -->
       <section class="app-page" data-page="logros" id="page-logros" hidden>
-        <div class="hero"><h1><em>Logros.</em></h1><p>Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas. Se publica al instante.</p></div>
         <div class="chat-box">
           <div class="chat-messages" id="achievements-list"></div>
           <div class="paste-preview" id="achievement-paste-preview" hidden><img id="achievement-paste-img" alt=""><span>Imagen lista para enviar</span><button type="button" id="achievement-paste-clear" aria-label="Quitar imagen pegada">✕</button></div>
