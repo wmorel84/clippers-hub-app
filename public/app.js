@@ -1550,27 +1550,96 @@
   });
 
   /* ---------------- Logros ---------------- */
+  // Acciones de Logros, igual que en el chat: reaccionar, responder, fijar, borrar.
+  var achPickerFor = null, achReplyTarget = null, achStore = {};
+  function setAchReplyBar() {
+    var bar = $('achievement-replybar');
+    if (!achReplyTarget) { bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.hidden = false;
+    bar.innerHTML = '<span>Respondiendo a <strong>' + esc(achReplyTarget.author) + '</strong>: ' + esc(achReplyTarget.body.slice(0, 80)) + '</span>'
+      + '<button type="button" id="achievement-reply-cancel">✕</button>';
+    $('achievement-reply-cancel').addEventListener('click', function () { achReplyTarget = null; setAchReplyBar(); });
+    $('achievement-body').focus();
+  }
+  document.addEventListener('click', async function (ev) {
+    var reactBtn = ev.target.closest('[data-ach-react]');
+    if (reactBtn) {
+      var parts = reactBtn.getAttribute('data-ach-react').split(':');
+      try {
+        await api('/api/achievements/' + parts[0] + '/react', { method: 'POST', body: JSON.stringify({ emoji: parts.slice(1).join(':') }) });
+        achPickerFor = null; loadAchievements();
+      } catch (e) { alert(e.message); }
+      return;
+    }
+    var pickerBtn = ev.target.closest('[data-ach-picker]');
+    if (pickerBtn) {
+      var pid = Number(pickerBtn.getAttribute('data-ach-picker'));
+      achPickerFor = achPickerFor === pid ? null : pid;
+      loadAchievements();
+      return;
+    }
+    var replyBtn = ev.target.closest('[data-ach-reply]');
+    if (replyBtn) {
+      var m = achStore[Number(replyBtn.getAttribute('data-ach-reply'))];
+      if (m) { achReplyTarget = { id: m.id, author: m.author_name, body: m.body || m.title || '' }; setAchReplyBar(); }
+      return;
+    }
+    var pinBtn = ev.target.closest('[data-ach-pin]');
+    if (pinBtn) {
+      var aid = Number(pinBtn.getAttribute('data-ach-pin'));
+      try {
+        if (achStore[aid] && achStore[aid].pinned) await api('/api/achievements/' + aid + '/pin', { method: 'DELETE' });
+        else await api('/api/achievements/' + aid + '/pin', { method: 'POST' });
+        loadAchievements();
+      } catch (e) { alert(e.message); }
+    }
+  });
+
   async function loadAchievements() {
     var list = $('achievements-list'); if (!list) return;
     try {
       var data = await api('/api/achievements');
       if (!data.achievements.length) { list.innerHTML = '<p class="chat-empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
       // Visual idéntica a la del chat: burbujas, las propias a la derecha,
-      // en orden de llegada (las más nuevas abajo). Los logros viejos traen
-      // título: queda como primera línea en negrita dentro de la burbuja.
-      var items = data.achievements.slice().reverse();
+      // en orden de llegada (las más nuevas abajo), los fijados primero.
+      // Los logros viejos traen título: queda como primera línea en negrita.
+      achStore = {};
+      data.achievements.forEach(function (a) { achStore[a.id] = a; });
+      var items = data.achievements.slice().sort(function (x, y) { return (y.pinned - x.pinned) || (x.id - y.id); });
       list.innerHTML = items.map(function (a) {
         var mine = state.user && state.user.id === a.user_id;
+        var isAdminUser = state.user && state.user.role === 'admin';
+        var quote = a.reply_body
+          ? '<div class="msg-quote"><strong>' + esc(a.reply_author) + '</strong> ' + esc(a.reply_body) + '</div>'
+          : '';
+        var reactions = (a.reactions && a.reactions.length)
+          ? '<div class="msg-reactions">' + a.reactions.map(function (r) {
+              return '<button type="button" class="rx-chip' + (r.mine ? ' mine' : '') + '" data-ach-react="' + a.id + ':' + r.emoji + '">' + r.emoji + ' ' + r.count + '</button>';
+            }).join('') + '</div>'
+          : '';
+        var picker = achPickerFor === a.id
+          ? '<div class="emoji-row">' + chatEmojis.map(function (e) {
+              return '<button type="button" data-ach-react="' + a.id + ':' + e + '">' + e + '</button>';
+            }).join('') + '</div>'
+          : '';
         return '<div class="msg' + (mine ? ' mine' : '') + '">'
           + '<div class="msg-head"><strong>' + esc(a.author_name) + '</strong>'
+          + (a.author_role === 'admin' ? '<span class="admin-chip">Admin</span>' : '')
+          + (a.pinned ? '<span class="admin-chip">📌 Fijado</span>' : '')
           + '<span class="msg-time">' + fmtDateTime(a.created_at) + '</span></div>'
+          + quote
           + '<div class="msg-body">'
           + (a.title ? '<strong>' + esc(a.title) + '</strong><br>' : '')
           + linkify(a.body) + youtubeEmbed(a.body)
           + '</div>'
           + (a.image_url ? '<img class="chat-img-thumb" src="' + esc(a.image_url) + '" alt="Captura del logro" loading="lazy">' : '')
-          + ((state.user && (state.user.role === 'admin' || mine)) ? '<div class="msg-actions"><button type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
-          + '</div>';
+          + reactions + picker
+          + '<div class="msg-actions">'
+          + '<button type="button" data-ach-picker="' + a.id + '">Reaccionar</button>'
+          + '<button type="button" data-ach-reply="' + a.id + '">Responder</button>'
+          + (isAdminUser ? '<button type="button" data-ach-pin="' + a.id + '">' + (a.pinned ? 'Desfijar' : 'Fijar') + '</button>' : '')
+          + ((isAdminUser || mine) ? '<button type="button" data-ach-del="' + a.id + '">Borrar</button>' : '')
+          + '</div></div>';
       }).join('');
       list.scrollTop = list.scrollHeight;
       list.querySelectorAll('[data-ach-del]').forEach(function (b) {
@@ -1592,11 +1661,13 @@
     fd.append('body', $('achievement-body').value);
     var file = $('achievement-image').files[0];
     if (file) fd.append('image', file);
+    if (achReplyTarget) fd.append('reply_to_id', achReplyTarget.id);
     try {
       var res = await fetch('/api/achievements', { method: 'POST', body: fd });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) throw new Error(data.error || 'Error al publicar.');
       achForm.reset(); msg.textContent = 'Logro publicado.';
+      achReplyTarget = null; setAchReplyBar();
       if ($('achievement-paste-preview')) $('achievement-paste-preview').hidden = true;
       loadAchievements();
       if ($('achievement-paste-preview')) $('achievement-paste-preview').hidden = true;

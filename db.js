@@ -386,6 +386,18 @@ function migrateChatMedia() {
   }
 }
 migrateChatMedia();
+// Reaccionar, responder y fijar en Logros (oct 2026): mismas columnas que
+// en el chat; las reacciones reusan chat_reactions con scope 'achievements'.
+// En bases ya existentes se agregan sin tocar los logros guardados.
+function migrateAchievementsSocial() {
+  const cols = db.prepare(`PRAGMA table_info(achievements)`).all().map((c) => c.name);
+  const add = (name, def) => { if (!cols.includes(name)) db.exec(`ALTER TABLE achievements ADD COLUMN ${name} ${def}`); };
+  add('reply_to_id', 'INTEGER');
+  add('reply_body', `TEXT NOT NULL DEFAULT ''`);
+  add('reply_author', `TEXT NOT NULL DEFAULT ''`);
+  add('pinned', 'INTEGER NOT NULL DEFAULT 0');
+}
+migrateAchievementsSocial();
 migrateCourse();
 seedCampaigns();
 
