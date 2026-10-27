@@ -250,19 +250,15 @@
       <!-- LOGROS -->
       <section class="app-page" data-page="logros" id="page-logros" hidden>
         <div class="hero"><h1><em>Logros.</em></h1><p>Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas. Se publica al instante.</p></div>
-        <div class="panel-card">
-          <h3>Publicar un logro</h3>
-          <p style="color:var(--muted)">Como en el chat: escribe tu logro, adjunta tu captura si quieres, y se publica al instante.</p>
-          <form id="achievement-form">
-            <div class="form-grid">
-              <div class="field"><label for="achievement-body">Tu logro</label><textarea id="achievement-body" rows="3" placeholder="Ej.: ¡Mi clip llegó a 10.000 vistas!"></textarea></div>
-              <div class="field"><label for="achievement-image">Captura de pantalla (opcional, máx. 3 MB)</label><input id="achievement-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div>
-            </div>
-            <div class="row-actions" style="margin-top:10px"><button class="btn small accent" type="submit">Publicar logro</button></div>
-            <p id="achievement-msg" style="color:var(--muted)"></p>
+        <div class="chat-box">
+          <div class="chat-messages" id="achievements-list"></div>
+          <form class="chat-composer" id="achievement-form">
+            <input id="achievement-body" maxlength="2000" placeholder="Escribe tu logro… (puedes pegar un link de video)" autocomplete="off">
+            <label class="btn small" style="cursor:pointer" title="Adjuntar captura">📷<input id="achievement-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label>
+            <button class="btn accent" type="submit">Enviar</button>
           </form>
         </div>
-        <div id="achievements-list" style="display:grid;gap:16px;margin-top:16px"></div>
+        <p id="achievement-msg" style="color:var(--muted)"></p>
       </section>
 
       <!-- ADMIN -->

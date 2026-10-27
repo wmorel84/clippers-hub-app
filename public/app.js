@@ -1530,18 +1530,25 @@
     var list = $('achievements-list'); if (!list) return;
     try {
       var data = await api('/api/achievements');
-      if (!data.achievements.length) { list.innerHTML = '<p class="empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
-      list.innerHTML = data.achievements.map(function (a) {
-        // Estilo chat: autor y hora arriba, texto, imagen debajo. Los logros
-        // viejos traen título: queda como primera línea en negrita.
-        return '<article class="panel-card" style="max-width:none">'
-          + '<p style="color:var(--muted);font-size:.85rem;margin:0 0 8px"><strong style="color:var(--text)">' + esc(a.author_name) + '</strong> · ' + fmtDateTime(a.created_at) + '</p>'
-          + (a.title ? '<p style="white-space:pre-wrap;margin:0 0 6px"><strong>' + esc(a.title) + '</strong></p>' : '')
-          + (a.body ? '<p style="white-space:pre-wrap">' + esc(a.body) + '</p>' : '')
+      if (!data.achievements.length) { list.innerHTML = '<p class="chat-empty">Aún no hay logros. ¡Sé el primero en publicar uno!</p>'; return; }
+      // Visual idéntica a la del chat: burbujas, las propias a la derecha,
+      // en orden de llegada (las más nuevas abajo). Los logros viejos traen
+      // título: queda como primera línea en negrita dentro de la burbuja.
+      var items = data.achievements.slice().reverse();
+      list.innerHTML = items.map(function (a) {
+        var mine = state.user && state.user.id === a.user_id;
+        return '<div class="msg' + (mine ? ' mine' : '') + '">'
+          + '<div class="msg-head"><strong>' + esc(a.author_name) + '</strong>'
+          + '<span class="msg-time">' + fmtDateTime(a.created_at) + '</span></div>'
+          + '<div class="msg-body">'
+          + (a.title ? '<strong>' + esc(a.title) + '</strong><br>' : '')
+          + linkify(a.body) + youtubeEmbed(a.body)
+          + '</div>'
           + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="Captura del logro" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
-          + ((state.user && (state.user.role === 'admin' || state.user.id === a.user_id)) ? '<div style="margin-top:10px"><button class="btn small ghost" type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
-          + '</article>';
+          + ((state.user && (state.user.role === 'admin' || mine)) ? '<div class="msg-actions"><button type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
+          + '</div>';
       }).join('');
+      list.scrollTop = list.scrollHeight;
       list.querySelectorAll('[data-ach-del]').forEach(function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('¿Borrar este logro?')) return;

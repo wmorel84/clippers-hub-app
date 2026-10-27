@@ -299,8 +299,10 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .chat-tab { padding: 9px 16px; border-radius: 999px; border: 1px solid #134e4a; background: #0c2321; color: #a7f3ea; font-weight: 600; cursor: pointer; }
 .chat-tab.is-active { background: #2dd4bf; color: #04211d; border-color: #2dd4bf; }
 .chat-pinned { background: #123b36; border: 1px solid #2dd4bf55; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; color: #d9fbf5; }
-.chat-box { background: #0c2321; border: 1px solid #123b36; border-radius: 16px; overflow: hidden; }
-.chat-messages { display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto; padding: 16px; }
+/* La caja del chat es una columna fija: los mensajes scrollean dentro y la
+   barra de escribir queda siempre abajo, sin tener que bajar la página. */
+.chat-box { background: #0c2321; border: 1px solid #123b36; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; height: 72vh; max-height: 760px; min-height: 420px; }
+.chat-messages { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; padding: 16px; }
 .chat-empty { color: #8fbdb5; text-align: center; padding: 18px 0; }
 .msg { align-self: flex-start; max-width: 80%; background: #0f2b28; border: 1px solid #16403a; border-radius: 14px; padding: 10px 12px; }
 .msg.mine { align-self: flex-end; background: #11443b; border-color: #1d5c4e; }
@@ -322,7 +324,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 @keyframes msgflash { 0%, 60% { box-shadow: 0 0 0 2px #2dd4bf; } 100% { box-shadow: none; } }
 .chat-replybar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #0a1f1c; border-top: 1px solid #16403a; padding: 8px 14px; color: #a7f3ea; font-size: 13px; }
 .chat-replybar button { background: none; border: none; color: #a7f3ea; font-size: 15px; cursor: pointer; }
-.chat-composer { display: flex; gap: 10px; padding: 12px; border-top: 1px solid #16403a; background: #0c2321; }
+.chat-composer { display: flex; gap: 10px; padding: 12px; border-top: 1px solid #16403a; background: #0c2321; flex: none; }
 .chat-composer input { flex: 1; background: #0a1f1c; border: 1px solid #1d5c4e; border-radius: 10px; color: #e6fffb; padding: 10px 12px; }
 .chat-dm-head { padding: 10px 16px; border-bottom: 1px solid #16403a; color: #d9fbf5; font-weight: 700; background: #0f2b28; }
 .chat-threads { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
