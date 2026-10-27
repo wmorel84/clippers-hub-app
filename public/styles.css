@@ -328,6 +328,16 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .chat-replybar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #0a1f1c; border-top: 1px solid #16403a; padding: 8px 14px; color: #a7f3ea; font-size: 13px; }
 .chat-replybar button { background: none; border: none; color: #a7f3ea; font-size: 15px; cursor: pointer; }
 .chat-composer { display: flex; gap: 10px; padding: 12px; border-top: 1px solid #16403a; background: #0c2321; flex: none; }
+/* Imagen en el chat: miniatura pequeña; al tocarla se abre grande. */
+.chat-img-thumb { max-width: 280px; width: 100%; border-radius: 10px; margin-top: 8px; cursor: zoom-in; display: block; }
+.paste-preview { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid #16403a; background: #0a1f1c; color: #8fbdb5; font-size: 13px; }
+.paste-preview img { max-height: 60px; border-radius: 8px; }
+.paste-preview button { background: none; border: none; color: #8fbdb5; font-size: 16px; cursor: pointer; }
+/* Visor de imagen: fondo oscuro, imagen hasta el 90% de la pantalla. */
+#img-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 12px; padding: 20px; }
+#img-lightbox.open { display: flex; }
+#img-lightbox img { max-width: 90vw; max-height: 85vh; border-radius: 12px; cursor: zoom-out; }
+#img-lightbox button { background: #2dd4bf; color: #04211d; border: none; border-radius: 999px; padding: 8px 18px; font-weight: 800; cursor: pointer; }
 .chat-composer input { flex: 1; background: #0a1f1c; border: 1px solid #1d5c4e; border-radius: 10px; color: #e6fffb; padding: 10px 12px; }
 .chat-dm-head { padding: 10px 16px; border-bottom: 1px solid #16403a; color: #d9fbf5; font-weight: 700; background: #0f2b28; }
 .chat-threads { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }

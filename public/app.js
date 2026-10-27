@@ -1140,7 +1140,7 @@
       + '<span class="msg-time">' + chatTime(m.created_at) + '</span></div>'
       + quote
       + '<div class="msg-body">' + linkify(m.body) + youtubeEmbed(m.body) + '</div>'
-      + (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="Imagen del mensaje" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
+      + (m.image_url ? '<img class="chat-img-thumb" src="' + esc(m.image_url) + '" alt="Imagen del mensaje" loading="lazy">' : '')
       + reactionsHtml(m, scope)
       + picker
       + '<div class="msg-actions">'
@@ -1304,6 +1304,8 @@
       if (!res.ok) throw new Error(data.error || 'Error al enviar.');
       input.value = '';
       if (fileInput) fileInput.value = '';
+      var pv = $(scope === 'room' ? 'chat-paste-preview' : 'dm-paste-preview');
+      if (pv) pv.hidden = true;
       replyTarget[scope] = null; setReplyBar(scope);
       if (scope === 'room') {
         roomHash = '';
@@ -1545,7 +1547,7 @@
           + (a.title ? '<strong>' + esc(a.title) + '</strong><br>' : '')
           + linkify(a.body) + youtubeEmbed(a.body)
           + '</div>'
-          + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="Captura del logro" style="max-width:100%;border-radius:10px;margin-top:8px" loading="lazy">' : '')
+          + (a.image_url ? '<img class="chat-img-thumb" src="' + esc(a.image_url) + '" alt="Captura del logro" loading="lazy">' : '')
           + ((state.user && (state.user.role === 'admin' || mine)) ? '<div class="msg-actions"><button type="button" data-ach-del="' + a.id + '">Borrar</button></div>' : '')
           + '</div>';
       }).join('');
@@ -1574,6 +1576,7 @@
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) throw new Error(data.error || 'Error al publicar.');
       achForm.reset(); msg.textContent = 'Logro publicado.';
+      if ($('achievement-paste-preview')) $('achievement-paste-preview').hidden = true;
       loadAchievements();
     } catch (e) { msg.textContent = e.message; }
   });
@@ -1633,6 +1636,61 @@
     var toggle = $('notifications-toggle');
     if (toggle) toggle.click();
   });
+
+  /* ---------------- Imagen grande + pegar imagen ---------------- */
+  // Clic en cualquier miniatura del chat o de Logros: se abre grande.
+  document.addEventListener('click', function (ev) {
+    var img = ev.target.closest('.chat-img-thumb');
+    if (img) {
+      $('img-lightbox-img').src = img.src;
+      $('img-lightbox').classList.add('open');
+      return;
+    }
+    if (ev.target.closest('#img-lightbox-close') || ev.target.id === 'img-lightbox-img') {
+      $('img-lightbox').classList.remove('open');
+    }
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') $('img-lightbox').classList.remove('open');
+  });
+
+  // Pegar una imagen copiada (Ctrl+V) en la barra: queda adjunta, igual que
+  // si se hubiera elegido con el botón de adjuntar, con su mini vista previa.
+  function attachPaste(inputEl, fileEl, previewEl, previewImgEl, clearBtn) {
+    if (!inputEl || !fileEl) return;
+    inputEl.addEventListener('paste', function (ev) {
+      var items = ev.clipboardData && ev.clipboardData.items ? Array.prototype.slice.call(ev.clipboardData.items) : [];
+      var item = null;
+      for (var i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') === 0) { item = items[i]; break; } }
+      if (!item) return;
+      var file = item.getAsFile();
+      if (!file) return;
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      fileEl.files = dt.files;
+      if (previewEl && previewImgEl) {
+        previewImgEl.src = URL.createObjectURL(file);
+        previewEl.hidden = false;
+      }
+    });
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      fileEl.value = '';
+      if (previewEl) previewEl.hidden = true;
+    });
+    // Adjuntar con el botón 📷: la misma vista previa que al pegar, antes de enviar.
+    fileEl.addEventListener('change', function () {
+      if (!previewEl || !previewImgEl) return;
+      if (fileEl.files && fileEl.files[0]) {
+        previewImgEl.src = URL.createObjectURL(fileEl.files[0]);
+        previewEl.hidden = false;
+      } else {
+        previewEl.hidden = true;
+      }
+    });
+  }
+  attachPaste($('chat-input'), $('chat-image'), $('chat-paste-preview'), $('chat-paste-img'), $('chat-paste-clear'));
+  attachPaste($('dm-input'), $('dm-image'), $('dm-paste-preview'), $('dm-paste-img'), $('dm-paste-clear'));
+  attachPaste($('achievement-body'), $('achievement-image'), $('achievement-paste-preview'), $('achievement-paste-img'), $('achievement-paste-clear'));
 
   /* ---------------- Init ---------------- */
   // Enlace desde la página del brief: /?submit=<id de campaña>

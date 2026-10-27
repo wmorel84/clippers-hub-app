@@ -204,6 +204,7 @@
           <div class="chat-pinned" id="chat-pinned" hidden></div>
           <div class="chat-box">
             <div class="chat-messages" id="chat-messages"></div>
+            <div class="paste-preview" id="chat-paste-preview" hidden><img id="chat-paste-img" alt=""><span>Imagen lista para enviar</span><button type="button" id="chat-paste-clear" aria-label="Quitar imagen pegada">✕</button></div>
             <div class="chat-replybar" id="chat-replybar" hidden></div>
             <form class="chat-composer" id="chat-form">
               <input id="chat-input" maxlength="500" placeholder="Escribe un mensaje a la comunidad… (puedes pegar un link de video)" autocomplete="off">
@@ -218,6 +219,7 @@
           <div class="chat-box" id="dm-box" hidden>
             <div class="chat-dm-head" id="chat-dm-head" hidden></div>
             <div class="chat-messages" id="dm-messages"></div>
+            <div class="paste-preview" id="dm-paste-preview" hidden><img id="dm-paste-img" alt=""><span>Imagen lista para enviar</span><button type="button" id="dm-paste-clear" aria-label="Quitar imagen pegada">✕</button></div>
             <div class="chat-replybar" id="dm-replybar" hidden></div>
             <form class="chat-composer" id="dm-form">
               <input id="dm-input" maxlength="500" placeholder="Escribe un mensaje… (puedes pegar un link de video)" autocomplete="off">
@@ -252,6 +254,7 @@
         <div class="hero"><h1><em>Logros.</em></h1><p>Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas. Se publica al instante.</p></div>
         <div class="chat-box">
           <div class="chat-messages" id="achievements-list"></div>
+          <div class="paste-preview" id="achievement-paste-preview" hidden><img id="achievement-paste-img" alt=""><span>Imagen lista para enviar</span><button type="button" id="achievement-paste-clear" aria-label="Quitar imagen pegada">✕</button></div>
           <form class="chat-composer" id="achievement-form">
             <input id="achievement-body" maxlength="2000" placeholder="Escribe tu logro… (puedes pegar un link de video)" autocomplete="off">
             <label class="btn small" style="cursor:pointer" title="Adjuntar captura">📷<input id="achievement-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label>
@@ -363,6 +366,12 @@
         </div>
       </section>
     </div>
+  </div>
+
+  <!-- Visor de imagen: se abre al tocar una imagen del chat o de Logros -->
+  <div id="img-lightbox" aria-hidden="true">
+    <img id="img-lightbox-img" alt="Imagen ampliada">
+    <button type="button" id="img-lightbox-close">✕ Cerrar (o toca la imagen)</button>
   </div>
 
   <!-- Detalle de campaña -->
