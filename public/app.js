@@ -44,7 +44,7 @@
   // Subtítulos que antes iban como encabezado grande dentro de la página:
   // ahora viven en la barra superior, y cambian con la sección.
   var pageSubtitles = {
-    chat: 'La comunidad de Clippers Pro y tu línea directa con el equipo.',
+    chat: 'La comunidad de Clippers Media y tu línea directa con el equipo.',
     logros: 'Comparte lo que vas logrando: vistas, aprobaciones, pagos, metas.'
   };
 
@@ -1261,7 +1261,7 @@
       $('dm-box').hidden = false; $('dm-empty').hidden = true;
       var head = $('chat-dm-head');
       head.hidden = false;
-      head.textContent = isAdminUser ? ('Conversación con ' + data.clipper_name) : 'Conversación con el equipo de Clippers Pro';
+      head.textContent = isAdminUser ? ('Conversación con ' + data.clipper_name) : 'Conversación con el equipo de Clippers Media';
       if (!force && h === dmHash) { refreshChatBadges(); return; }
       dmHash = h;
       storeMessages('dm', data.messages);

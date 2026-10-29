@@ -1,11 +1,11 @@
-// Service worker de Clippers Pro (PWA).
+// Service worker de Clippers Media (PWA).
 // Estrategia segura para una app con datos en vivo:
 // - La API (/api/) NUNCA se cachea: siempre va a la red.
 // - Páginas: red primero (si no hay conexión, la copia guardada).
 // - Archivos estáticos: copia inmediata + actualización en segundo plano,
 //   para que los despliegues nuevos lleguen solos sin trabar a nadie.
 // Al cambiar archivos importantes, sube la versión de CACHE.
-const CACHE = 'clippers-pro-v1';
+const CACHE = 'clippers-media-v1';
 const STATIC = [
   '/styles.css',
   '/app.js',
@@ -70,7 +70,7 @@ self.addEventListener('fetch', (event) => {
 // Al llegar un push se muestra la notificación del sistema: suena y vibra
 // según el tono que el teléfono tenga configurado para notificaciones.
 self.addEventListener('push', (event) => {
-  let data = { title: 'Clippers Pro', body: '', url: '/' };
+  let data = { title: 'Clippers Media', body: '', url: '/' };
   try {
     if (event.data) data = Object.assign(data, event.data.json());
   } catch (e) { /* texto plano: se ignora y va el aviso genérico */ }

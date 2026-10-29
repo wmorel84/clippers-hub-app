@@ -9,7 +9,7 @@ const { notifyAll } = require('../lib/notify');
 // y a cada campaña nueva de una importación.
 function publishLaunchNews(adminId, title) {
   const newsTitle = 'Nueva campaña: ' + title;
-  const body = 'Ya está disponible en Clippers Pro. Léela en Campañas y crea tu clip.';
+  const body = 'Ya está disponible en Clippers Media. Léela en Campañas y crea tu clip.';
   try {
     db.prepare('INSERT INTO news_posts (title, body, author_id) VALUES (?, ?, ?)').run(newsTitle, body, adminId || null);
   } catch (e) { /* la campaña ya quedó creada; la noticia se puede publicar a mano */ }

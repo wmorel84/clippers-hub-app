@@ -97,7 +97,7 @@
     .then(function (data) {
       var c = data.campaign;
       if (!c) throw new Error('not found');
-      document.title = c.title + ' — Clippers Pro';
+      document.title = c.title + ' — Clippers Media';
       if (c.image_url) {
         var img = $('brief-img');
         img.src = c.image_url;

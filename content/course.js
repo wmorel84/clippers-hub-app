@@ -1,4 +1,4 @@
-// Contenido del curso inicial de Clippers Pro: «Empieza a ganar con tus clips».
+// Contenido del curso inicial de Clippers Media: «Empieza a ganar con tus clips».
 // Textos originales de la academia. Para actualizar el curso (nuevos nichos,
 // mercado de USA, etc.) se editan las lecciones de este archivo.
 // Bloques: {h} subtítulo · {p} párrafo · {list} viñetas · {steps} pasos
@@ -8,27 +8,27 @@ const COURSE = {
   title: 'Empieza a ganar con tus clips',
   intro:
     'El curso para entrar al mundo del clipping desde cero: eliges tu nicho, ' +
-    'preparas tus cuentas, las vinculas a Clippers Pro y envías tu primer clip. ' +
+    'preparas tus cuentas, las vinculas a Clippers Media y envías tu primer clip. ' +
     'Sin experiencia previa. Ve en orden y marca cada lección al terminarla.',
   lessons: [
     {
       id: 'bienvenida',
       title: 'Bienvenida: qué es el clipping y cómo se gana dinero',
       blocks: [
-        { p: 'Bienvenido a Clippers Pro. Aquí ganas dinero de una forma sencilla de entender: **las marcas y los artistas necesitan que sus videos se hagan virales**, y pagan por las vistas que generan los clips que publican personas como tú.' },
+        { p: 'Bienvenido a Clippers Media. Aquí ganas dinero de una forma sencilla de entender: **las marcas y los artistas necesitan que sus videos se hagan virales**, y pagan por las vistas que generan los clips que publican personas como tú.' },
         { p: 'Ese trabajo se llama **clipping**: tomas el material de una campaña (una canción, un producto, una app), creas clips cortos y atractivos para TikTok o Instagram, los publicas en tus cuentas y **cobras según las vistas que consigas**.' },
         { h: 'Cómo se calcula lo que ganas' },
         { list: [
           'Cada campaña paga una **tarifa por cada 1.000 vistas** (ejemplo: US$1.50 por 1.000 vistas).',
           'Si tu clip llega a 20.000 vistas con esa tarifa, serían US$30.',
           'Cada campaña tiene un **mínimo** (lo que debe pagar como piso por clip) y un **máximo por clip** (el tope, aunque el video explote).',
-          'Tus ganancias se acreditan en tu **Billetera** de Clippers Pro y se pagan por **PANA** (en la lección del tour te lo explicamos en detalle).',
+          'Tus ganancias se acreditan en tu **Billetera** de Clippers Media y se pagan por **PANA** (en la lección del tour te lo explicamos en detalle).',
         ] },
         { h: 'Qué vas a aprender en este curso' },
         { steps: [
           'Elegir tu nicho (el tipo de contenido al que te vas a dedicar).',
           'Crear y calentar tus cuentas de TikTok e Instagram.',
-          'Vincular tus cuentas a Clippers Pro.',
+          'Vincular tus cuentas a Clippers Media.',
           'Elegir una campaña y entender su brief y sus requisitos.',
           'Publicar y enviar tu primer clip.',
           'Conocer cada rincón de la plataforma y las reglas de oro para crecer.',
@@ -41,7 +41,7 @@ const COURSE = {
       title: 'Elige tu nicho: música, productos o apps',
       blocks: [
         { p: 'El **nicho** es el tema del que tratan tus cuentas. Las cuentas que se especializan en un solo tema crecen más rápido, porque la red social entiende a quién mostrarles el contenido y el público sabe qué esperar de ellas.' },
-        { p: 'En Clippers Pro trabajamos, por ahora, tres grandes renglones. Elige **uno** para empezar:' },
+        { p: 'En Clippers Media trabajamos, por ahora, tres grandes renglones. Elige **uno** para empezar:' },
         { h: '1. Música (el renglón más fuerte de la plataforma)' },
         { p: 'Clips de canciones y artistas: el momento más emotivo de una presentación, la frase que a todos pone la piel de gallina, la reacción del público, la historia detrás de una canción. Dentro de la música hay sub-nichos; quédate con el género que más escuchas:' },
         { list: [
@@ -141,16 +141,16 @@ const COURSE = {
     },
     {
       id: 'vincular-cuenta',
-      title: 'Vincula tu cuenta en Clippers Pro',
+      title: 'Vincula tu cuenta en Clippers Media',
       blocks: [
-        { p: 'Para que tus clips cuenten y te paguen, tu cuenta de TikTok o Instagram debe estar **vinculada** a tu perfil de Clippers Pro. La vinculación demuestra que esa cuenta es tuya. Se hace una sola vez por cuenta.' },
+        { p: 'Para que tus clips cuenten y te paguen, tu cuenta de TikTok o Instagram debe estar **vinculada** a tu perfil de Clippers Media. La vinculación demuestra que esa cuenta es tuya. Se hace una sola vez por cuenta.' },
         { h: 'Paso a paso dentro de la app' },
         { steps: [
-          'Entra a la sección **Mis cuentas** en el menú de Clippers Pro.',
+          'Entra a la sección **Mis cuentas** en el menú de Clippers Media.',
           'Pulsa agregar cuenta, elige la red (TikTok o Instagram) y **pega el enlace de tu perfil** (el que se abre al tocar "Compartir perfil" en tu red social).',
           'El equipo tomará tu cuenta para procesarla en el sistema. En poco tiempo recibirás en la misma pantalla un **código de verificación**.',
           'Copia ese código y **pégalo en la biografía** de tu cuenta de TikTok o Instagram, tal cual, sin cambiarle nada.',
-          'Vuelve a Clippers Pro y pulsa **Confirmar**: avisaste que el código ya está en tu bio.',
+          'Vuelve a Clippers Media y pulsa **Confirmar**: avisaste que el código ya está en tu bio.',
           'El equipo verifica tu bio y tu cuenta queda **Verificada**. Desde ese momento ya puedes enviar clips con esa cuenta.',
         ] },
         { h: 'Qué significa cada estado' },
@@ -200,7 +200,7 @@ const COURSE = {
           '**Menciones y hashtags obligatorios:** la cuenta que debes etiquetar y los # que deben ir en tu publicación, escritos igual que en el brief.',
           '**Duración mínima:** algunos clips deben durar un mínimo de segundos para contar.',
           '**Interacción mínima (engagement):** algunas campañas exigen que el clip alcance un porcentaje mínimo de interacción (me gusta, comentarios y compartidos frente a las vistas).',
-          '**Plazo de envío:** después de publicar, tienes un tiempo máximo para registrar tu clip en Clippers Pro. No lo dejes para después.',
+          '**Plazo de envío:** después de publicar, tienes un tiempo máximo para registrar tu clip en Clippers Media. No lo dejes para después.',
         ] },
         { h: 'Errores que causan rechazo' },
         { list: [
@@ -226,10 +226,10 @@ const COURSE = {
           'Cuida lo básico: buena calidad de imagen, sin marcas de agua ajenas, y la duración que pide el brief.',
           'Publica en la red y plataforma correctas, con la **mención, los hashtags y el audio** que exige la campaña.',
         ] },
-        { h: 'Enviar el clip en Clippers Pro' },
+        { h: 'Enviar el clip en Clippers Media' },
         { steps: [
           'Copia el **enlace de tu publicación** (en tu red social: Compartir → Copiar enlace).',
-          'En Clippers Pro, entra a la campaña y pulsa **Enviar un clip** (o usa el botón de enviar de la tarjeta).',
+          'En Clippers Media, entra a la campaña y pulsa **Enviar un clip** (o usa el botón de enviar de la tarjeta).',
           'Pega el enlace, revisa que sea el de ESE clip y confirma el envío.',
           'Tu clip aparece en **Mis clips** con estado **Pendiente**: el equipo lo revisa contra la campaña.',
         ] },
@@ -244,7 +244,7 @@ const COURSE = {
     },
     {
       id: 'tour',
-      title: 'Tour por Clippers Pro: qué es cada cosa',
+      title: 'Tour por Clippers Media: qué es cada cosa',
       blocks: [
         { p: 'Un paseo rápido por tu plataforma, sección por sección, para que nunca te pierdas:' },
         { list: [
@@ -253,7 +253,7 @@ const COURSE = {
           '**Mis cuentas:** tus cuentas de TikTok e Instagram vinculadas y su estado de verificación. Aquí agregas cuentas nuevas.',
           '**Billetera:** tu dinero. **Disponible** (listo para cobrar), **Retenido** (ganancias recientes en periodo de seguridad de 14 días; al cumplirse, pasan a Disponible), **Total ganado** y tus movimientos. Aquí también registras tu cuenta **PANA**, que es por donde recibes tus pagos.',
           '**Chat → Comunidad:** la sala de todos los clippers: dudas, logros y avisos. Puedes reaccionar a los mensajes y responder citando.',
-          '**Chat → Privado con el equipo:** tu conversación directa y privada con el equipo de Clippers Pro para temas de tu cuenta, tus pagos o un clip puntual.',
+          '**Chat → Privado con el equipo:** tu conversación directa y privada con el equipo de Clippers Media para temas de tu cuenta, tus pagos o un clip puntual.',
           '**La campana de notificaciones:** ahí llegan los avisos importantes: clips aprobados o rechazados, ganancias acreditadas y anuncios. Revísala a diario.',
           '**Cursos:** esta academia. Vuelve cuando quieras repasar una lección: tu progreso se guarda.',
         ] },

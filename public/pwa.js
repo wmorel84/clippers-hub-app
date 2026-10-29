@@ -1,4 +1,4 @@
-// PWA de Clippers Pro: registra el service worker y, cuando detecta que la
+// PWA de Clippers Media: registra el service worker y, cuando detecta que la
 // visita es desde un celular y la app aún no está instalada, muestra la
 // opción de instalarla (botón directo en Android/Chrome; instrucciones en
 // iPhone, donde el navegador no permite el botón directo).
@@ -67,7 +67,7 @@
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferredPrompt = e;
-    show('<strong>Instala Clippers Pro</strong>Ten la app en tu pantalla de inicio: abre al instante, a pantalla completa.', 'Instalar', function () {
+    show('<strong>Instala Clippers Media</strong>Ten la app en tu pantalla de inicio: abre al instante, a pantalla completa.', 'Instalar', function () {
       if (!deferredPrompt) return dismiss();
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(function () {
@@ -81,14 +81,14 @@
 
   if (isIOS) {
     setTimeout(function () {
-      show('<strong>Instala Clippers Pro</strong>Toca <b>Compartir</b> (el cuadro con la flecha ↑) y luego <b>«Agregar a pantalla de inicio»</b>.', 'Entendido', dismiss);
+      show('<strong>Instala Clippers Media</strong>Toca <b>Compartir</b> (el cuadro con la flecha ↑) y luego <b>«Agregar a pantalla de inicio»</b>.', 'Entendido', dismiss);
     }, 1500);
   } else if (isAndroid) {
     // Navegadores Android sin aviso automático (ej.: Firefox): se muestra la
     // ruta manual por el menú del navegador.
     setTimeout(function () {
       if (!deferredPrompt && !banner) {
-        show('<strong>Instala Clippers Pro</strong>Abre el menú <b>⋮</b> de tu navegador y toca <b>«Instalar app»</b> o <b>«Agregar a pantalla de inicio»</b>.', 'Entendido', dismiss);
+        show('<strong>Instala Clippers Media</strong>Abre el menú <b>⋮</b> de tu navegador y toca <b>«Instalar app»</b> o <b>«Agregar a pantalla de inicio»</b>.', 'Entendido', dismiss);
       }
     }, 3500);
   }
